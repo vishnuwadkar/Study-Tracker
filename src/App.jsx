@@ -23,7 +23,13 @@ import {
   Trash2,
   Menu,
   Settings,
-  Sliders
+  Sliders,
+  CheckSquare,
+  RefreshCw,
+  LayoutDashboard, // ✅ FIXED: Added this missing import
+  ListChecks,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -59,41 +65,60 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = "my-study-tracker"; 
 
-// --- Constants & Data ---
+// --- Constants & Helpers ---
+const TARGET_HOURS = 8;
 const EXAM_DATE = new Date('2026-02-15');
 
-// Subject Lists for different GATE Streams
-const STREAM_SUBJECTS = {
-  DA: [
-    "Probability & Statistics", "Linear Algebra", "Calculus", "Prog, DS & Algo", 
-    "Database Mgmt & Warehouse", "Machine Learning", "Artificial Intelligence", "General Aptitude"
-  ],
-  CS: [
-    "Digital Logic", "COA", "Programming & DS", "Algorithms", "TOC", 
-    "Compiler Design", "Operating Systems", "DBMS", "Computer Networks", 
-    "Discrete Math", "Engineering Math", "General Aptitude"
-  ],
-  EC: [
-    "Networks", "Signals & Systems", "Electronic Devices", "Analog Circuits", 
-    "Digital Circuits", "Control Systems", "Communications", "Electromagnetics", 
-    "Engineering Math", "General Aptitude"
-  ],
-  EE: [
-    "Electric Circuits", "Electromagnetic Fields", "Signals & Systems", 
-    "Electrical Machines", "Power Systems", "Control Systems", 
-    "Electrical Measurements", "Analog & Digital Electronics", "Engineering Math"
-  ],
-  ME: [
-    "Engg Mechanics", "Mechanics of Materials", "Theory of Machines", 
-    "Vibrations", "Machine Design", "Fluid Mechanics", "Heat Transfer", 
-    "Thermodynamics", "Manufacturing", "Engineering Math"
-  ],
-  CE: [
-    "Engg Mechanics", "Solid Mechanics", "Structural Analysis", 
-    "Construction Materials", "Geotechnical Engg", "Fluid Mechanics", 
-    "Environmental Engg", "Transportation Engg", "Geomatics", "Engineering Math"
-  ],
-  Other: ["Subject 1", "Subject 2", "Subject 3", "General Aptitude"]
+// Detailed Syllabus Data with WEIGHTAGE (Approximate marks)
+const SYLLABUS_DATA = {
+  DA: {
+    "Probability & Statistics": {
+        weight: 15,
+        topics: ["Counting", "Probability Axioms", "Conditional Probability", "Random Variables", "Discrete & Continuous Distributions", "Poisson, Normal, Exponential", "Mean, Median, Mode", "Standard Deviation", "Correlation", "Sampling", "Hypothesis Testing"]
+    },
+    "Linear Algebra": {
+        weight: 10,
+        topics: ["Vector Spaces", "Subspaces", "Linear Dependence", "Matrices & Determinants", "Eigenvalues & Eigenvectors", "Matrix Decompositions", "Projection Matrix"]
+    },
+    "Calculus": {
+        weight: 8,
+        topics: ["Limits & Continuity", "Differentiation", "Maxima & Minima", "Integration", "Sequences & Series", "Taylor Series"]
+    },
+    "Prog, DS & Algo": {
+        weight: 12,
+        topics: ["Python Programming", "Stacks & Queues", "Linked Lists", "Trees (BST, AVL)", "Graph Traversal", "Sorting & Searching", "Hashing", "Time Complexity"]
+    },
+    "Database Mgmt": {
+        weight: 10,
+        topics: ["ER Models", "Relational Model", "Normalization", "SQL Queries", "Transactions", "Data Warehousing", "Schema Design"]
+    },
+    "Machine Learning": {
+        weight: 15,
+        topics: ["Supervised Learning", "Unsupervised Learning", "Decision Trees", "SVM", "Neural Networks", "Model Evaluation", "Overfitting"]
+    },
+    "Artificial Intelligence": {
+        weight: 10,
+        topics: ["Search Algorithms", "Logic", "Reasoning under Uncertainty", "Planning"]
+    },
+    "General Aptitude": {
+        weight: 15,
+        topics: ["Verbal Ability", "Quantitative Aptitude", "Analytical Aptitude", "Spatial Aptitude"]
+    },
+    "Other": { weight: 5, topics: ["Misc Topics"] }
+  },
+  CS: {
+    "Digital Logic": { weight: 5, topics: ["Boolean Algebra", "Combinational Circuits", "Sequential Circuits", "Number Rep", "Computer Arithmetic"] },
+    "COA": { weight: 8, topics: ["Machine Instructions", "Addressing Modes", "ALU", "Pipelining", "Memory Hierarchy", "I/O"] },
+    "Programming & DS": { weight: 12, topics: ["C Programming", "Recursion", "Arrays", "Stacks", "Queues", "Linked Lists", "Trees", "Graphs"] },
+    "Algorithms": { weight: 10, topics: ["Asymptotic Analysis", "Divide & Conquer", "Greedy", "Dynamic Programming", "Graph Algo", "NP-Completeness"] },
+    "TOC": { weight: 8, topics: ["Regular Expressions", "Finite Automata", "Context-Free Grammars", "Turing Machines", "Undecidability"] },
+    "Compiler Design": { weight: 6, topics: ["Lexical Analysis", "Parsing", "Syntax Directed Translation", "Runtime Env"] },
+    "Operating Systems": { weight: 10, topics: ["Processes", "Threads", "CPU Scheduling", "Synchronization", "Deadlock", "Memory Mgmt", "File Systems"] },
+    "DBMS": { weight: 8, topics: ["ER Model", "Relational Algebra", "SQL", "Normalization", "Transactions", "Concurrency"] },
+    "Computer Networks": { weight: 8, topics: ["OSI/TCP-IP", "IP Addressing", "Routing", "TCP/UDP", "App Layer"] },
+    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
+    "Engineering Math": { weight: 10, topics: ["Linear Algebra", "Calculus", "Probability", "Discrete Math"] }
+  }
 };
 
 const STREAM_NAMES = {
@@ -106,7 +131,6 @@ const STREAM_NAMES = {
   Other: "General / Other"
 };
 
-// --- Helpers ---
 const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
 const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
 
@@ -129,6 +153,8 @@ const App = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null); 
   const [entries, setEntries] = useState({}); 
+  const [syllabusProgress, setSyllabusProgress] = useState({});
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' | 'syllabus'
   
   // Settings State
   const [userSettings, setUserSettings] = useState({
@@ -139,6 +165,7 @@ const App = () => {
   // UI State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedSubjects, setExpandedSubjects] = useState({});
   
   // Form State
   const [inputHours, setInputHours] = useState('');
@@ -161,31 +188,28 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // Fetch Logs
   useEffect(() => {
     if (!user) return;
-    const collRef = collection(db, 'artifacts', appId, 'users', user.uid, 'study_log');
-    const unsubscribe = onSnapshot(collRef, (snapshot) => {
+    const logsRef = collection(db, 'artifacts', appId, 'users', user.uid, 'study_log');
+    const unsubLogs = onSnapshot(logsRef, (snapshot) => {
       const data = {};
       snapshot.forEach((doc) => { data[doc.id] = doc.data(); });
       setEntries(data);
-    }, (error) => console.error("Error:", error));
-    return () => unsubscribe();
-  }, [user]);
+    });
 
-  // Fetch User Settings
-  useEffect(() => {
-    if (!user) return;
+    const sylRef = doc(db, 'artifacts', appId, 'users', user.uid, 'syllabus', 'progress');
+    const unsubSyl = onSnapshot(sylRef, (doc) => {
+        if (doc.exists()) setSyllabusProgress(doc.data());
+    });
+
     const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config');
-    // Fetch once on load
     getDoc(settingsRef).then((snap) => {
-        if (snap.exists()) {
-            setUserSettings(snap.data());
-        }
-    }).catch(err => console.error("Error fetching settings", err));
+        if (snap.exists()) setUserSettings(snap.data());
+    });
+
+    return () => { unsubLogs(); unsubSyl(); };
   }, [user]);
 
-  // Dark Mode Effect
   useEffect(() => {
     const root = window.document.documentElement;
     if (isDarkMode) {
@@ -205,7 +229,7 @@ const App = () => {
   };
 
   const handleLogout = async () => {
-    try { await signOut(auth); setEntries({}); setIsSettingsOpen(false); } 
+    try { await signOut(auth); setEntries({}); setSyllabusProgress({}); setIsSettingsOpen(false); } 
     catch (error) { console.error(error); }
   };
 
@@ -215,9 +239,32 @@ const App = () => {
         const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config');
         await setDoc(settingsRef, userSettings);
         setIsSettingsOpen(false);
-    } catch (err) {
-        console.error("Settings save error", err);
+    } catch (err) { console.error(err); }
+  };
+
+  const toggleSyllabusItem = async (subject, topic, field) => {
+    if (!user) return;
+    const newProgress = { ...syllabusProgress };
+    if (!newProgress[subject]) newProgress[subject] = {};
+    if (!newProgress[subject][topic]) newProgress[subject][topic] = { done: false, rev: 0 };
+
+    if (field === 'done') {
+        newProgress[subject][topic].done = !newProgress[subject][topic].done;
+    } else if (field === 'rev_inc') {
+        newProgress[subject][topic].rev = (newProgress[subject][topic].rev || 0) + 1;
+    } else if (field === 'rev_dec') {
+        newProgress[subject][topic].rev = Math.max(0, (newProgress[subject][topic].rev || 0) - 1);
     }
+
+    setSyllabusProgress(newProgress);
+    try {
+        const sylRef = doc(db, 'artifacts', appId, 'users', user.uid, 'syllabus', 'progress');
+        await setDoc(sylRef, newProgress);
+    } catch (err) { console.error(err); }
+  };
+
+  const toggleSubjectExpand = (subject) => {
+    setExpandedSubjects(prev => ({...prev, [subject]: !prev[subject]}));
   };
 
   const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
@@ -226,14 +273,11 @@ const App = () => {
   const handleDayClick = (day) => {
     const dateKey = formatDateKey(year, month, day);
     setSelectedDate(dateKey);
-    
-    // Reset inputs
     setInputHours('');
     setInputMinutes('');
     setInputNotes('');
-    // Default to first subject of current stream
-    setInputSubject(STREAM_SUBJECTS[userSettings.stream][0]);
-    
+    const subjects = Object.keys(SYLLABUS_DATA[userSettings.stream] || {});
+    setInputSubject(subjects[0] || 'Other');
     setIsModalOpen(true);
   };
 
@@ -252,20 +296,10 @@ const App = () => {
         const currentEntry = entries[selectedDate] || {};
         let sessions = currentEntry.sessions || [];
         if (!currentEntry.sessions && currentEntry.hours) {
-            sessions = [{
-                id: 'legacy',
-                subject: currentEntry.subject || 'Other',
-                hours: currentEntry.hours,
-                notes: currentEntry.notes || ''
-            }];
+            sessions = [{ id: 'legacy', subject: currentEntry.subject || 'Other', hours: currentEntry.hours, notes: currentEntry.notes || '' }];
         }
 
-        const newSession = {
-            id: Date.now().toString(),
-            subject: inputSubject,
-            hours: sessionHours,
-            notes: inputNotes
-        };
+        const newSession = { id: Date.now().toString(), subject: inputSubject, hours: sessionHours, notes: inputNotes };
         const updatedSessions = [...sessions, newSession];
         const newTotalHours = updatedSessions.reduce((sum, s) => sum + s.hours, 0);
 
@@ -275,12 +309,11 @@ const App = () => {
           updatedAt: new Date().toISOString()
         });
       }
-      setIsModalOpen(false);
-    } catch (err) {
-      console.error("Save error", err);
-    } finally {
+      setInputHours('');
+      setInputMinutes('');
+      setInputNotes('');
       setIsLoading(false);
-    }
+    } catch (err) { console.error(err); setIsLoading(false); }
   };
 
   const handleDeleteSession = async (sessionId) => {
@@ -291,22 +324,12 @@ const App = () => {
         const updatedSessions = currentEntry.sessions.filter(s => s.id !== sessionId);
         const newTotalHours = updatedSessions.reduce((sum, s) => sum + s.hours, 0);
 
-        if (updatedSessions.length === 0) {
-            await deleteDoc(docRef);
-        } else {
-            await setDoc(docRef, {
-                ...currentEntry,
-                hours: newTotalHours,
-                sessions: updatedSessions,
-                updatedAt: new Date().toISOString()
-            });
-        }
-    } catch (err) {
-        console.error("Delete error", err);
-    }
+        if (updatedSessions.length === 0) await deleteDoc(docRef);
+        else await setDoc(docRef, { ...currentEntry, hours: newTotalHours, sessions: updatedSessions, updatedAt: new Date().toISOString() });
+    } catch (err) { console.error(err); }
   };
 
-  // --- Helpers ---
+  // --- Analytics ---
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const daysInMonth = getDaysInMonth(year, month);
@@ -320,9 +343,9 @@ const App = () => {
     let streak = 0;
     const subjectTotals = {};
     let last7DaysTotal = 0;
-    
-    const target = userSettings.dailyTarget; // Use dynamic target
+    const target = userSettings.dailyTarget;
 
+    // Calendar Stats
     for (let d = 1; d <= daysInMonth; d++) {
       const key = formatDateKey(year, month, d);
       const entry = entries[key];
@@ -330,12 +353,8 @@ const App = () => {
         monthlyTotal += entry.hours;
         daysStudied++;
         if (entry.hours >= target) daysTargetMet++;
-        
         if (entry.sessions) {
-            entry.sessions.forEach(s => {
-                const sub = s.subject || "Other";
-                subjectTotals[sub] = (subjectTotals[sub] || 0) + s.hours;
-            });
+            entry.sessions.forEach(s => { const sub = s.subject || "Other"; subjectTotals[sub] = (subjectTotals[sub] || 0) + s.hours; });
         } else {
             const sub = entry.subject || "Other";
             subjectTotals[sub] = (subjectTotals[sub] || 0) + entry.hours;
@@ -343,31 +362,22 @@ const App = () => {
       }
     }
 
-    const sortedSubjects = Object.entries(subjectTotals)
-      .sort(([,a], [,b]) => b - a)
-      .map(([name, hours]) => ({ 
-        name, 
-        hours, 
-        percent: monthlyTotal > 0 ? (hours / monthlyTotal) * 100 : 0 
-      }));
+    const sortedSubjects = Object.entries(subjectTotals).sort(([,a], [,b]) => b - a).map(([name, hours]) => ({ name, hours, percent: monthlyTotal > 0 ? (hours / monthlyTotal) * 100 : 0 }));
 
+    // Streak
     const today = new Date();
     const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
     let temp = new Date(today);
-    
     for(let i=0; i<365; i++) {
         const k = formatDateKey(temp.getFullYear(), temp.getMonth(), temp.getDate());
         const entry = entries[k];
         const isToday = k === todayKey;
-        
-        if (entry && entry.hours >= target) {
-            streak++;
-        } else if (!isToday) {
-            break; 
-        }
+        if (entry && entry.hours >= target) streak++;
+        else if (!isToday) break; 
         temp.setDate(temp.getDate() - 1);
     }
 
+    // Weekly
     const weeklyData = [];
     const chartEnd = new Date();
     for(let i=6; i>=0; i--) {
@@ -376,27 +386,37 @@ const App = () => {
         const k = formatDateKey(d.getFullYear(), d.getMonth(), d.getDate());
         const hrs = entries[k]?.hours || 0;
         last7DaysTotal += hrs;
-        weeklyData.push({
-            day: d.toLocaleDateString('en-US', { weekday: 'short' }),
-            hours: hrs,
-            isTarget: hrs >= target
-        });
+        weeklyData.push({ day: d.toLocaleDateString('en-US', { weekday: 'short' }), hours: hrs, isTarget: hrs >= target });
     }
 
     const examDiff = EXAM_DATE - new Date();
     const daysRemaining = Math.ceil(examDiff / (1000 * 60 * 60 * 24));
 
-    return {
-      monthlyTotal: monthlyTotal.toFixed(1),
-      avgDaily: daysStudied > 0 ? (monthlyTotal / daysStudied).toFixed(1) : "0.0",
-      completionRate: daysInMonth > 0 ? Math.round((daysTargetMet / new Date().getDate()) * 100) : 0,
-      streak,
-      weeklyData,
-      last7DaysTotal: last7DaysTotal.toFixed(1),
-      sortedSubjects,
-      daysRemaining
-    };
-  }, [entries, year, month, daysInMonth, userSettings]); // Recalc when settings change
+    // Weighted Syllabus Stats
+    let totalWeightedScore = 0;
+    let achievedWeightedScore = 0;
+    let totalRevisions = 0;
+    
+    const streamData = SYLLABUS_DATA[userSettings.stream] || {};
+    
+    Object.entries(streamData).forEach(([subject, data]) => {
+        const weight = data.weight || 0;
+        const topics = data.topics || [];
+        const topicWeight = weight / (topics.length || 1); // Weight per topic
+        
+        totalWeightedScore += weight;
+        
+        topics.forEach(topic => {
+            const prog = syllabusProgress[subject]?.[topic];
+            if (prog?.done) achievedWeightedScore += topicWeight;
+            if (prog?.rev) totalRevisions += prog.rev;
+        });
+    });
+    
+    const syllabusCompletion = totalWeightedScore > 0 ? Math.round((achievedWeightedScore / totalWeightedScore) * 100) : 0;
+
+    return { monthlyTotal: monthlyTotal.toFixed(1), avgDaily: daysStudied > 0 ? (monthlyTotal / daysStudied).toFixed(1) : "0.0", completionRate: daysInMonth > 0 ? Math.round((daysTargetMet / new Date().getDate()) * 100) : 0, streak, weeklyData, last7DaysTotal: last7DaysTotal.toFixed(1), sortedSubjects, daysRemaining, syllabusCompletion, totalRevisions };
+  }, [entries, year, month, daysInMonth, userSettings, syllabusProgress]);
 
   const getCellColor = (hours) => {
     const target = userSettings.dailyTarget;
@@ -414,7 +434,8 @@ const App = () => {
     return [];
   };
 
-  // --- RENDER: LOGIN ---
+  const activeStreamSubjects = SYLLABUS_DATA[userSettings.stream] || {};
+
   if (!user) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-4 transition-colors duration-300">
@@ -437,25 +458,37 @@ const App = () => {
     );
   }
 
-  // --- RENDER: MAIN ---
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300 selection:bg-emerald-500/30">
       
       {/* Top Navigation */}
       <nav className="bg-white/80 dark:bg-black/50 border-b border-zinc-200 dark:border-white/10 sticky top-0 z-30 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-black/50 transition-colors duration-300">
-        <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between relative">
-            <div className="flex items-center gap-3 z-10">
+        <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
+            {/* Left: Logo + Title */}
+            <div className="flex items-center gap-4">
                 <div className="bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white p-2.5 rounded-xl shadow-lg shadow-emerald-500/20 dark:shadow-none">
                     <GraduationCap size={22} />
                 </div>
+                <div className="hidden sm:block">
+                    <h1 className="text-xl font-black tracking-tight text-zinc-900 dark:text-white leading-none">
+                        GATE <span className="text-emerald-600 dark:text-emerald-400">2026</span>
+                    </h1>
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest">{userSettings.stream}</p>
+                </div>
             </div>
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
-                    GATE<span className="text-emerald-600 dark:text-emerald-400 ml-1">{userSettings.stream}</span>
-                </h1>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest hidden sm:block">Target: {userSettings.dailyTarget}h Daily</p>
+
+            {/* Center: Toggles */}
+            <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-900/80 p-1 rounded-xl border border-zinc-200 dark:border-white/10">
+                <button onClick={() => setActiveView('dashboard')} className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'dashboard' ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'}`}>
+                    <LayoutDashboard size={14} /> <span className="hidden sm:inline">Tracker</span>
+                </button>
+                <button onClick={() => setActiveView('syllabus')} className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'syllabus' ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'}`}>
+                    <ListChecks size={14} /> <span className="hidden sm:inline">Syllabus</span>
+                </button>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 z-10">
+
+            {/* Right: Buttons */}
+            <div className="flex items-center gap-2">
                 <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900/50 border border-transparent dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">
                   {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
                 </button>
@@ -466,178 +499,247 @@ const App = () => {
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        
-        {/* Left Column: Analytics */}
-        <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-28 lg:h-fit order-2 lg:order-1">
-            
-            {/* Countdown Card - Pulsing Hourglass */}
-            <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-700 p-6 rounded-3xl shadow-xl shadow-indigo-500/20 dark:shadow-none text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 border border-white/10">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl group-hover:bg-white/20 transition-all"></div>
-                <div className="relative z-10 flex items-center justify-between">
-                    <div>
-                        <p className="text-indigo-100 font-medium text-xs uppercase tracking-wider mb-1">Countdown to Exam</p>
-                        <h3 className="text-4xl font-black tracking-tighter">{stats.daysRemaining} <span className="text-lg font-medium opacity-80">days left</span></h3>
-                        <p className="text-xs text-indigo-200 mt-1">Feb 15, 2026</p>
-                    </div>
-                    <div className="bg-white/20 p-3 rounded-xl backdrop-blur-md shadow-inner border border-white/20">
-                        {/* COOL EFFECT: Pulse + Drop Shadow Glow */}
-                        <Hourglass size={28} className="text-white animate-pulse drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-                    </div>
-                </div>
-            </div>
-
-            {/* Streak Card */}
-            <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 dark:bg-emerald-500/10 rounded-full -mr-10 -mt-10 blur-3xl"></div>
-                <div className="relative z-10">
-                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-2">
-                        <Zap size={18} fill="currentColor" className={stats.streak > 0 ? "animate-pulse" : ""} />
-                        <span className="text-xs font-bold uppercase tracking-wider">Current Streak</span>
-                    </div>
-                    <div className="text-5xl font-black text-zinc-900 dark:text-white tracking-tight">
-                        {stats.streak}<span className="text-lg text-zinc-400 dark:text-zinc-500 font-medium ml-1">days</span>
-                    </div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 font-medium">
-                        {stats.streak > 0 ? "You're on fire! 🔥" : "Start your streak today!"}
-                    </p>
-                </div>
-            </div>
-            
-            {/* Mini Stats */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
-                    <Clock size={20} className="text-blue-500 mb-3" />
-                    <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.monthlyTotal}h</div>
-                    <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Total Hours</div>
-                </div>
-                <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
-                    <Target size={20} className="text-purple-500 mb-3" />
-                    <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.completionRate}%</div>
-                    <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Completion</div>
-                </div>
-            </div>
-
-            {/* Subject Breakdown */}
-            <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
-                <div className="flex items-center gap-2 mb-4">
-                    <PieChart size={18} className="text-zinc-400" />
-                    <h3 className="font-bold text-zinc-700 dark:text-zinc-200">Subject Breakdown</h3>
-                </div>
-                <div className="space-y-4">
-                    {stats.sortedSubjects.length > 0 ? (
-                        stats.sortedSubjects.slice(0, 5).map((sub) => (
-                            <div key={sub.name}>
-                                <div className="flex justify-between text-xs mb-1.5">
-                                    <span className="font-medium text-zinc-600 dark:text-zinc-300 truncate pr-2">{sub.name}</span>
-                                    <span className="text-zinc-400 font-mono">{formatDuration(sub.hours)}</span>
-                                </div>
-                                <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
-                                    <div 
-                                        className="bg-emerald-500 h-full rounded-full transition-all duration-500 ease-out" 
-                                        style={{ width: `${sub.percent}%` }}
-                                    ></div>
-                                </div>
+      <main className="max-w-6xl mx-auto p-4 sm:p-6">
+        {activeView === 'dashboard' ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                {/* Left Column: Analytics */}
+                <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-28 lg:h-fit order-2 lg:order-1">
+                    {/* Countdown Card */}
+                    <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-700 p-6 rounded-3xl shadow-xl shadow-indigo-500/20 dark:shadow-none text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 border border-white/10">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl group-hover:bg-white/20 transition-all"></div>
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div>
+                                <p className="text-indigo-100 font-medium text-xs uppercase tracking-wider mb-1">Countdown to Exam</p>
+                                <h3 className="text-4xl font-black tracking-tighter">{stats.daysRemaining} <span className="text-lg font-medium opacity-80">days left</span></h3>
+                                <p className="text-xs text-indigo-200 mt-1">Feb 15, 2026</p>
                             </div>
-                        ))
-                    ) : (
-                        <div className="text-center py-4 text-xs text-zinc-400">No data yet. Start logging!</div>
-                    )}
-                </div>
-            </div>
-
-            {/* Weekly Chart */}
-            <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                        <BarChart3 size={18} className="text-zinc-400" />
-                        <h3 className="font-bold text-zinc-700 dark:text-zinc-200">Last 7 Days</h3>
-                    </div>
-                    <div className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-500/20 dark:text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-500/20">
-                        Total: {stats.last7DaysTotal}h
-                    </div>
-                </div>
-                <div className="flex items-end justify-between h-32 gap-2 mt-4">
-                    {stats.weeklyData.map((d, i) => (
-                        <div key={i} className="flex flex-col items-center gap-2 w-full h-full justify-end group">
-                            <div className="w-full flex-1 relative bg-zinc-100 dark:bg-zinc-800 rounded-t-lg overflow-hidden">
-                                <div 
-                                    className={`absolute bottom-0 left-0 w-full rounded-t-lg transition-all duration-500 ${d.isTarget ? 'bg-emerald-500 dark:bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600 group-hover:bg-zinc-400 dark:group-hover:bg-zinc-500'}`}
-                                    style={{ height: `${Math.min(100, (d.hours / userSettings.dailyTarget) * 100)}%` }}
-                                ></div>
-                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 dark:bg-white text-white dark:text-zinc-900 text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold pointer-events-none shadow-lg">
-                                    {formatDuration(d.hours)}
-                                </div>
+                            <div className="bg-amber-400/20 p-4 rounded-2xl backdrop-blur-md border border-amber-300/30 shadow-[0_0_20px_rgba(251,191,36,0.3)]">
+                                <Hourglass size={28} className="text-amber-300 animate-pulse drop-shadow-[0_0_12px_rgba(253,224,71,1)]" />
                             </div>
-                            <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{d.day}</span>
                         </div>
-                    ))}
-                </div>
-            </div>
-        </div>
+                    </div>
 
-        {/* Right Column: Calendar */}
-        <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
-            <div className="bg-transparent rounded-3xl shadow-none transition-colors duration-300">
-                <div className="p-6 bg-white dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-100 dark:border-white/5 flex items-center justify-between sticky top-[80px] z-20 rounded-t-3xl shadow-sm border-t border-x dark:border-white/10 transition-colors duration-300">
-                    <div>
-                        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-baseline gap-2">
-                            {monthNames[month]} <span className="text-zinc-300 dark:text-zinc-500 font-medium text-lg">{year}</span>
-                        </h2>
+                    {/* Syllabus Coverage Card */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <ListChecks size={18} className="text-zinc-400" />
+                                <h3 className="font-bold text-zinc-700 dark:text-zinc-200">Syllabus Weighted</h3>
+                            </div>
+                            <span className="text-xs font-bold bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md">{stats.syllabusCompletion}%</span>
+                        </div>
+                        <div className="w-full bg-zinc-100 dark:bg-white/5 rounded-full h-2 mb-4">
+                            <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${stats.syllabusCompletion}%` }}></div>
+                        </div>
+                        <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                            <span>Total Revisions</span>
+                            <span className="font-bold text-zinc-700 dark:text-white">{stats.totalRevisions}</span>
+                        </div>
                     </div>
-                    <div className="flex gap-1 bg-zinc-50 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-100 dark:border-white/5">
-                        <button onClick={handlePrevMonth} className="p-2 hover:bg-white dark:hover:bg-zinc-700 hover:shadow-sm rounded-lg text-zinc-500 dark:text-zinc-400 transition-all"><ChevronLeft size={20}/></button>
-                        <button onClick={handleNextMonth} className="p-2 hover:bg-white dark:hover:bg-zinc-700 hover:shadow-sm rounded-lg text-zinc-500 dark:text-zinc-400 transition-all"><ChevronRight size={20}/></button>
+
+                    {/* Streak Card */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 dark:bg-emerald-500/10 rounded-full -mr-10 -mt-10 blur-3xl"></div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-2">
+                                <Zap size={18} fill="currentColor" className={stats.streak > 0 ? "animate-pulse" : ""} />
+                                <span className="text-xs font-bold uppercase tracking-wider">Current Streak</span>
+                            </div>
+                            <div className="text-5xl font-black text-zinc-900 dark:text-white tracking-tight">
+                                {stats.streak}<span className="text-lg text-zinc-400 dark:text-zinc-500 font-medium ml-1">days</span>
+                            </div>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 font-medium">{stats.streak > 0 ? "You're on fire! 🔥" : "Start your streak today!"}</p>
+                        </div>
+                    </div>
+                    
+                    {/* Mini Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
+                            <Clock size={20} className="text-blue-500 mb-3" />
+                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.monthlyTotal}h</div>
+                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Total Hours</div>
+                        </div>
+                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
+                            <Target size={20} className="text-purple-500 mb-3" />
+                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.completionRate}%</div>
+                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Completion</div>
+                        </div>
+                    </div>
+
+                    {/* Weekly Chart */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <BarChart3 size={18} className="text-zinc-400" />
+                                <h3 className="font-bold text-zinc-700 dark:text-zinc-200">Last 7 Days</h3>
+                            </div>
+                            <div className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-500/20 dark:text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-500/20">Total: {stats.last7DaysTotal}h</div>
+                        </div>
+                        <div className="flex items-end justify-between h-32 gap-2 mt-4">
+                            {stats.weeklyData.map((d, i) => (
+                                <div key={i} className="flex flex-col items-center gap-2 w-full h-full justify-end group">
+                                    <div className="w-full flex-1 relative bg-zinc-100 dark:bg-zinc-800 rounded-t-lg overflow-hidden">
+                                        <div className={`absolute bottom-0 left-0 w-full rounded-t-lg transition-all duration-500 ${d.isTarget ? 'bg-emerald-500 dark:bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600 group-hover:bg-zinc-400 dark:group-hover:bg-zinc-500'}`} style={{ height: `${Math.min(100, (d.hours / userSettings.dailyTarget) * 100)}%` }}></div>
+                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 dark:bg-white text-white dark:text-zinc-900 text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold pointer-events-none shadow-lg">
+                                            {formatDuration(d.hours)}
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{d.day}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-                <div className="p-6 bg-white dark:bg-zinc-900/50 backdrop-blur-xl rounded-b-3xl border-x border-b border-zinc-200 dark:border-white/10">
-                    <div className="grid grid-cols-7 mb-4">
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                            <div key={d} className="text-center text-xs font-bold text-zinc-300 dark:text-zinc-600 uppercase tracking-wider">{d}</div>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-7 auto-rows-fr gap-2 sm:gap-4">
-                        {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
-                        {Array.from({ length: daysInMonth }).map((_, i) => {
-                            const day = i + 1;
-                            const dateKey = formatDateKey(year, month, day);
-                            const entry = entries[dateKey];
-                            const hours = entry?.hours || 0;
-                            const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
-                            return (
-                                <div 
-                                    key={day}
-                                    onClick={() => handleDayClick(day)}
-                                    className={`
-                                        relative aspect-square sm:aspect-[4/3] rounded-2xl p-2 sm:p-3 transition-all cursor-pointer border
-                                        flex flex-col justify-between group
-                                        ${getCellColor(hours)}
-                                        ${isToday ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-black' : ''}
-                                    `}
-                                >
-                                    <div className="flex justify-between items-start">
-                                        <span className={`text-sm font-bold ${hours >= userSettings.dailyTarget ? 'text-white/90' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}>{day}</span>
-                                        {hours >= userSettings.dailyTarget && <Crown size={20} className="text-yellow-300 fill-yellow-300 drop-shadow-md" />}
-                                    </div>
-                                    {hours > 0 ? (
-                                        <div>
-                                            <div className={`text-sm sm:text-lg font-bold ${hours >= userSettings.dailyTarget ? 'text-white' : 'text-zinc-700 dark:text-zinc-200'}`}>{formatDuration(hours)}</div>
-                                            {entry.sessions && entry.sessions.length > 1 && (
-                                                <div className="hidden sm:block text-[10px] text-zinc-400 dark:text-zinc-500">{entry.sessions.length} sessions</div>
+
+                {/* Right Column: Calendar */}
+                <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
+                    <div className="bg-transparent rounded-3xl shadow-none transition-colors duration-300">
+                        <div className="p-6 bg-white dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-100 dark:border-white/5 flex items-center justify-between sticky top-[80px] z-20 rounded-t-3xl shadow-sm border-t border-x dark:border-white/10 transition-colors duration-300">
+                            <div>
+                                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-baseline gap-2">
+                                    {monthNames[month]} <span className="text-zinc-300 dark:text-zinc-500 font-medium text-lg">{year}</span>
+                                </h2>
+                            </div>
+                            <div className="flex gap-1 bg-zinc-50 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-100 dark:border-white/5">
+                                <button onClick={handlePrevMonth} className="p-2 hover:bg-white dark:hover:bg-zinc-700 hover:shadow-sm rounded-lg text-zinc-500 dark:text-zinc-400 transition-all"><ChevronLeft size={20}/></button>
+                                <button onClick={handleNextMonth} className="p-2 hover:bg-white dark:hover:bg-zinc-700 hover:shadow-sm rounded-lg text-zinc-500 dark:text-zinc-400 transition-all"><ChevronRight size={20}/></button>
+                            </div>
+                        </div>
+                        <div className="p-6 bg-white dark:bg-zinc-900/50 backdrop-blur-xl rounded-b-3xl border-x border-b border-zinc-200 dark:border-white/10">
+                            <div className="grid grid-cols-7 mb-4">
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                    <div key={d} className="text-center text-xs font-bold text-zinc-300 dark:text-zinc-600 uppercase tracking-wider">{d}</div>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-7 auto-rows-fr gap-2 sm:gap-4">
+                                {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                                {Array.from({ length: daysInMonth }).map((_, i) => {
+                                    const day = i + 1;
+                                    const dateKey = formatDateKey(year, month, day);
+                                    const entry = entries[dateKey];
+                                    const hours = entry?.hours || 0;
+                                    const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+                                    const metTarget = hours >= userSettings.dailyTarget;
+                                    return (
+                                        <div 
+                                            key={day}
+                                            onClick={() => handleDayClick(day)}
+                                            className={`
+                                                relative aspect-square sm:aspect-[4/3] rounded-2xl p-2 sm:p-3 transition-all cursor-pointer border
+                                                flex flex-col justify-between group
+                                                ${getCellColor(hours)}
+                                                ${isToday ? 'ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-black' : ''}
+                                            `}
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <span className={`text-sm font-bold ${metTarget ? 'text-white/90' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}>{day}</span>
+                                                {metTarget && <Crown size={20} className="text-yellow-300 fill-yellow-300 drop-shadow-md" />}
+                                            </div>
+                                            {hours > 0 ? (
+                                                <div>
+                                                    <div className={`text-sm sm:text-lg font-bold ${metTarget ? 'text-white' : 'text-zinc-700 dark:text-zinc-200'}`}>{formatDuration(hours)}</div>
+                                                    {entry.sessions && entry.sessions.length > 1 && (
+                                                        <div className={`hidden sm:block text-[10px] truncate ${metTarget ? 'text-white/80' : 'text-zinc-400 dark:text-zinc-500'}`}>{entry.sessions.length} sessions</div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="self-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="bg-zinc-100 dark:bg-white/5 p-1.5 rounded-full"><TrendingUp size={14} className="text-zinc-400 dark:text-zinc-500"/></div>
+                                                </div>
                                             )}
                                         </div>
-                                    ) : (
-                                        <div className="self-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <div className="bg-zinc-100 dark:bg-white/5 p-1.5 rounded-full"><TrendingUp size={14} className="text-zinc-400 dark:text-zinc-500"/></div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        ) : (
+            /* SYLLABUS VIEW */
+            <div className="max-w-4xl mx-auto">
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">Syllabus Tracker</h2>
+                        <p className="text-zinc-500 dark:text-zinc-400 mt-1">Weighted tracking of topic completion and revisions.</p>
+                    </div>
+                    <div className="text-right hidden sm:block">
+                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Weighted Progress</p>
+                        <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{stats.syllabusCompletion}%</div>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    {Object.entries(activeStreamSubjects).map(([subject, data]) => {
+                        const topics = data.topics || [];
+                        const weight = data.weight || 0;
+                        const isExpanded = expandedSubjects[subject];
+                        // Calc weighted progress for this subject
+                        const totalSubWeight = weight;
+                        const weightPerTopic = totalSubWeight / (topics.length || 1);
+                        let earnedWeight = 0;
+                        topics.forEach(t => { if (syllabusProgress[subject]?.[t]?.done) earnedWeight += weightPerTopic; });
+                        const percent = totalSubWeight > 0 ? Math.round((earnedWeight/totalSubWeight)*100) : 0;
+
+                        return (
+                            <div key={subject} className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 overflow-hidden transition-all duration-300">
+                                <div 
+                                    className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors"
+                                    onClick={() => toggleSubjectExpand(subject)}
+                                >
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{subject}</h3>
+                                                <span className="text-xs font-bold px-2 py-0.5 rounded bg-zinc-100 dark:bg-white/10 text-zinc-500 dark:text-zinc-400">Weight: {weight}%</span>
+                                            </div>
+                                            <span className="text-xs font-mono text-zinc-400 dark:text-zinc-500">{percent}% Done</span>
+                                        </div>
+                                        <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2">
+                                            <div className={`h-2 rounded-full transition-all duration-500 ${percent === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${percent}%` }}></div>
+                                        </div>
+                                    </div>
+                                    <div className="ml-6 text-zinc-400">
+                                        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                    </div>
+                                </div>
+
+                                {isExpanded && (
+                                    <div className="border-t border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-black/20 p-4 space-y-2">
+                                        {topics.map(topic => {
+                                            const tData = syllabusProgress[subject]?.[topic] || { done: false, rev: 0 };
+                                            return (
+                                                <div key={topic} className="flex items-center justify-between p-3 rounded-xl hover:bg-white dark:hover:bg-white/5 transition-colors group">
+                                                    <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleSyllabusItem(subject, topic, 'done')}>
+                                                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${tData.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-zinc-300 dark:border-zinc-600 text-transparent group-hover:border-emerald-400'}`}>
+                                                            <CheckSquare size={14} fill="currentColor" />
+                                                        </div>
+                                                        <span className={`text-sm font-medium transition-colors ${tData.done ? 'text-zinc-400 line-through decoration-zinc-400/50' : 'text-zinc-700 dark:text-zinc-200'}`}>{topic}</span>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-3 pl-4 border-l border-zinc-200 dark:border-white/10 ml-4">
+                                                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Rev</span>
+                                                        <div className="flex items-center gap-1 bg-white dark:bg-zinc-800 rounded-lg p-1 border border-zinc-200 dark:border-white/10">
+                                                            <button onClick={() => toggleSyllabusItem(subject, topic, 'rev_dec')} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-30" disabled={!tData.rev}>
+                                                                <ChevronLeft size={14} />
+                                                            </button>
+                                                            <span className="w-6 text-center text-xs font-bold text-zinc-700 dark:text-zinc-200">{tData.rev || 0}</span>
+                                                            <button onClick={() => toggleSyllabusItem(subject, topic, 'rev_inc')} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                                                                <RefreshCw size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -645,72 +747,95 @@ const App = () => {
         <p>&copy; {new Date().getFullYear()} <span className="font-bold text-zinc-500 dark:text-zinc-500">@vishnuwadkar</span>. All rights reserved.</p>
       </footer>
       
-      {/* Modal: Log Session */}
+      {/* Modal: Log Session (Split Screen V7) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/20 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl dark:shadow-2xl dark:shadow-black/50 w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] border border-zinc-200 dark:border-white/10">
-            <div className="p-6 pb-0 flex justify-between items-center shrink-0">
-                <div>
-                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Log Session</h3>
-                    <p className="text-xs text-zinc-400 font-medium uppercase tracking-wide">{selectedDate}</p>
-                </div>
-                <button onClick={() => setIsModalOpen(false)} className="bg-zinc-100 dark:bg-zinc-800 p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><X size={18} /></button>
-            </div>
-
-            {/* Existing Sessions */}
-            <div className="px-6 mt-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                {getSelectedSessions().length > 0 && (
-                    <div className="space-y-3 mb-6">
-                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Today's Sessions</p>
-                        {getSelectedSessions().map((s, idx) => (
-                            <div key={s.id || idx} className="flex items-center justify-between bg-zinc-50 dark:bg-white/5 p-4 rounded-2xl border border-zinc-100 dark:border-white/5 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 transition-colors group">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/20 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-4xl rounded-[2.5rem] shadow-2xl dark:shadow-black/50 overflow-hidden animate-in zoom-in-95 duration-200 border border-zinc-200 dark:border-white/10 flex flex-col md:flex-row max-h-[90vh]">
+            
+            {/* Left Column: History List */}
+            <div className="w-full md:w-1/2 bg-zinc-50/50 dark:bg-black/20 p-6 md:p-8 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-white/5 flex flex-col h-[200px] md:h-auto order-2 md:order-1">
+                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Clock size={14}/> Today's History
+                </h3>
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                    {getSelectedSessions().length > 0 ? (
+                        getSelectedSessions().map((s, idx) => (
+                            <div key={s.id || idx} className="flex items-center justify-between bg-white dark:bg-white/5 p-4 rounded-2xl border border-zinc-100 dark:border-white/5 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 transition-all group shadow-sm">
                                 <div>
-                                    <div className="font-bold text-zinc-800 dark:text-zinc-100 text-base mb-0.5">{s.subject}</div>
-                                    <div className="text-sm text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-2">
-                                        <Clock size={12} className="text-emerald-500"/> {formatDuration(s.hours)} 
-                                        {s.notes && <span className="opacity-60 font-normal">• {s.notes}</span>}
+                                    <div className="font-bold text-zinc-800 dark:text-zinc-100 text-base mb-1">{s.subject}</div>
+                                    <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-2">
+                                        <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md">{formatDuration(s.hours)}</span>
+                                        {s.notes && <span className="opacity-60 font-normal truncate max-w-[120px]">{s.notes}</span>}
                                     </div>
                                 </div>
                                 <button onClick={() => handleDeleteSession(s.id)} className="text-zinc-300 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100">
                                     <Trash2 size={16} />
                                 </button>
                             </div>
-                        ))}
-                    </div>
-                )}
+                        ))
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-600 italic text-sm">
+                            <BookOpen size={32} className="mb-2 opacity-20" />
+                            No sessions logged yet today.
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <form onSubmit={handleSaveSession} className="p-6 pt-2 space-y-6 shrink-0">
-              <div>
-                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-2"><BookOpen size={16} className="text-emerald-500"/> Add New Session</label>
-                <div className="relative">
-                    <select 
-                        value={inputSubject}
-                        onChange={(e) => setInputSubject(e.target.value)}
-                        className="w-full appearance-none bg-zinc-50 dark:bg-black/20 border border-zinc-200 dark:border-white/10 rounded-2xl py-4 px-4 text-zinc-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-                    >
-                        {STREAM_SUBJECTS[userSettings.stream].map(s => <option key={s} value={s} className="dark:bg-zinc-900">{s}</option>)}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400"><ChevronRight size={16} className="rotate-90"/></div>
+            {/* Right Column: Input Form */}
+            <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col order-1 md:order-2 relative bg-white dark:bg-zinc-900">
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h3 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">Add Session</h3>
+                        <p className="text-sm text-zinc-400 font-medium uppercase tracking-wide mt-1">{selectedDate}</p>
+                    </div>
+                    <button onClick={() => setIsModalOpen(false)} className="bg-zinc-100 dark:bg-zinc-800 p-2.5 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><X size={20} /></button>
                 </div>
-              </div>
 
-              <div className="flex gap-4">
-                    <div className="flex-1"><div className="relative"><input type="number" min="0" max="23" value={inputHours} onChange={(e) => setInputHours(e.target.value)} placeholder="0" className="w-full bg-zinc-50 dark:bg-black/20 border border-zinc-200 dark:border-white/10 rounded-2xl py-4 px-4 text-center text-2xl font-bold text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 transition-all" /><span className="absolute right-4 top-5 text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase">Hr</span></div></div>
-                    <div className="flex-1"><div className="relative"><input type="number" min="0" max="59" value={inputMinutes} onChange={(e) => setInputMinutes(e.target.value)} placeholder="0" className="w-full bg-zinc-50 dark:bg-black/20 border border-zinc-200 dark:border-white/10 rounded-2xl py-4 px-4 text-center text-2xl font-bold text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 transition-all" /><span className="absolute right-4 top-5 text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase">Min</span></div></div>
-              </div>
-              
-              <div>
-                <textarea value={inputNotes} onChange={(e) => setInputNotes(e.target.value)} placeholder="Notes (optional)" rows={2} className="w-full p-4 bg-zinc-50 dark:bg-black/20 border border-zinc-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none text-zinc-700 dark:text-zinc-200 text-sm placeholder:text-zinc-400" />
-              </div>
-              
-              <button type="submit" disabled={isLoading} className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 py-4 rounded-2xl font-bold hover:bg-zinc-800 dark:hover:bg-zinc-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-zinc-200 dark:shadow-none">{isLoading ? "Saving..." : <><Save size={18} /> Add Session</>}</button>
-            </form>
+                <form onSubmit={handleSaveSession} className="space-y-6 flex-1">
+                    <div>
+                        <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Subject</label>
+                        <div className="relative">
+                            <select 
+                                value={inputSubject}
+                                onChange={(e) => setInputSubject(e.target.value)}
+                                className="w-full appearance-none bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl py-4 px-5 text-zinc-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-lg"
+                            >
+                                {Object.keys(activeStreamSubjects).map(s => <option key={s} value={s} className="dark:bg-zinc-900">{s}</option>)}
+                            </select>
+                            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400"><ChevronRight size={18} className="rotate-90"/></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Duration</label>
+                        <div className="flex gap-4">
+                            <div className="flex-1 relative">
+                                <input type="number" min="0" max="23" value={inputHours} onChange={(e) => setInputHours(e.target.value)} placeholder="0" className="w-full bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl py-4 px-5 text-center text-2xl font-black text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 transition-all" />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase">Hr</span>
+                            </div>
+                            <div className="flex-1 relative">
+                                <input type="number" min="0" max="59" value={inputMinutes} onChange={(e) => setInputMinutes(e.target.value)} placeholder="0" className="w-full bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl py-4 px-5 text-center text-2xl font-black text-zinc-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 transition-all" />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase">Min</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Notes</label>
+                        <textarea value={inputNotes} onChange={(e) => setInputNotes(e.target.value)} placeholder="What did you achieve?" rows={2} className="w-full p-4 bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none text-zinc-700 dark:text-zinc-200 text-sm placeholder:text-zinc-400" />
+                    </div>
+                    
+                    <button type="submit" disabled={isLoading} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold hover:bg-emerald-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 mt-auto">
+                        {isLoading ? "Saving..." : <><Save size={18} /> Add Session</>}
+                    </button>
+                </form>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Settings Modal (Hamburger) */}
+      {/* Settings Modal */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-end sm:justify-center p-4 sm:p-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white dark:bg-zinc-900 w-full sm:w-96 rounded-3xl sm:rounded-[2rem] shadow-2xl p-6 border border-zinc-200 dark:border-white/10 animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
