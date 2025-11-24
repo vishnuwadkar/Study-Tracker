@@ -35,7 +35,8 @@ import {
   ChevronDown,
   ChevronUp,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Lightbulb
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -184,8 +185,10 @@ const App = () => {
   // Timer State
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [startTime, setStartTime] = useState(null); // For accurate background timing
   const [timerSubject, setTimerSubject] = useState('');
   const [isZenMode, setIsZenMode] = useState(false);
+  const [wakeLock, setWakeLock] = useState(null); // Store wake lock reference
 
   // Form State
   const [inputHours, setInputHours] = useState('');
@@ -204,18 +207,50 @@ const App = () => {
 
   // --- Effects ---
   
-  // Timer Logic
+  // IMPROVED Timer Logic: Background Safe + Title Update
   useEffect(() => {
     let interval = null;
-    if (isTimerRunning) {
+    
+    if (isTimerRunning && startTime) {
+      // Update immediate UI
+      const diff = Math.floor((Date.now() - startTime) / 1000);
+      setTimerSeconds(diff);
+      document.title = `${formatTimer(diff)} - Focus`; // Show time in tab
+
       interval = setInterval(() => {
-        setTimerSeconds(s => s + 1);
+        const now = Date.now();
+        const currentDiff = Math.floor((now - startTime) / 1000);
+        setTimerSeconds(currentDiff);
+        document.title = `${formatTimer(currentDiff)} - Focus`;
       }, 1000);
-    } else if (!isTimerRunning && timerSeconds !== 0) {
-      clearInterval(interval);
+    } else {
+        document.title = "GATE 2026 Tracker";
     }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, timerSeconds]);
+
+    return () => {
+        clearInterval(interval);
+        document.title = "GATE 2026 Tracker";
+    };
+  }, [isTimerRunning, startTime]);
+
+  // Screen Wake Lock Logic
+  const requestWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        const lock = await navigator.wakeLock.request('screen');
+        setWakeLock(lock);
+      } catch (err) {
+        console.log(`${err.name}, ${err.message}`);
+      }
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    if (wakeLock) {
+      await wakeLock.release();
+      setWakeLock(null);
+    }
+  };
 
   // Auth & Data Fetching
   useEffect(() => {
@@ -271,6 +306,21 @@ const App = () => {
   }, [userSettings.stream, timerSubject]);
 
   // --- Handlers ---
+  
+  // Handle Timer Start (with background check)
+  const handleStartTimer = () => {
+    const newStart = Date.now() - (timerSeconds * 1000);
+    setStartTime(newStart);
+    setIsTimerRunning(true);
+    requestWakeLock(); // Keep screen on
+  };
+
+  // Handle Timer Pause
+  const handlePauseTimer = () => {
+    setIsTimerRunning(false);
+    releaseWakeLock(); // Let screen sleep
+  };
+
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try { await signInWithPopup(auth, provider); } 
@@ -333,6 +383,7 @@ const App = () => {
   const handleTimerFinish = () => {
     setIsTimerRunning(false);
     setIsZenMode(false);
+    releaseWakeLock();
     
     const h = Math.floor(timerSeconds / 3600);
     const m = Math.round((timerSeconds % 3600) / 60);
@@ -347,8 +398,9 @@ const App = () => {
     setInputNotes('Logged via Focus Timer');
     
     setTimerSeconds(0);
+    setStartTime(null);
     setIsModalOpen(true);
-    setActiveView('dashboard'); // Return to dashboard after timer
+    setActiveView('dashboard'); 
   };
 
   const handleSaveSession = async (e) => {
@@ -501,9 +553,7 @@ const App = () => {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-4 transition-colors duration-300">
         <div className="bg-white dark:bg-zinc-900/50 p-8 rounded-3xl shadow-2xl dark:shadow-none backdrop-blur-xl border border-zinc-200 dark:border-white/10 max-w-md w-full text-center relative overflow-hidden">
-          {/* Breathing Background Blob */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] animate-pulse-slow pointer-events-none"></div>
-          
           <div className="bg-emerald-100 dark:bg-emerald-500/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-emerald-600 dark:text-emerald-400 ring-4 ring-emerald-50 dark:ring-emerald-900/20 relative z-10">
             <GraduationCap size={32} />
           </div>
@@ -541,7 +591,6 @@ const App = () => {
                         <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest">{userSettings.stream}</p>
                     </div>
                     
-                    {/* Focus Timer Button (Moved here) */}
                     <button 
                         onClick={() => setActiveView('timer')}
                         className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${activeView === 'timer' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10'}`}
@@ -579,11 +628,9 @@ const App = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Left Column: Analytics */}
                 <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-28 lg:h-fit order-2 lg:order-1">
-                    {/* Countdown Card (PULSATING YELLOW) */}
+                    {/* Countdown Card */}
                     <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-700 p-6 rounded-3xl shadow-xl shadow-indigo-500/20 dark:shadow-none text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 border border-white/10">
-                        {/* Breathing background blob */}
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-3xl animate-pulse-slow"></div>
-                        
                         <div className="relative z-10 flex items-center justify-between">
                             <div>
                                 <p className="text-indigo-100 font-medium text-xs uppercase tracking-wider mb-1">Countdown to Exam</p>
@@ -657,6 +704,9 @@ const App = () => {
                                 <div key={i} className="flex flex-col items-center gap-2 w-full h-full justify-end group">
                                     <div className="w-full flex-1 relative bg-zinc-100 dark:bg-zinc-800 rounded-t-lg overflow-hidden">
                                         <div className={`absolute bottom-0 left-0 w-full rounded-t-lg transition-all duration-500 ${d.isTarget ? 'bg-emerald-500 dark:bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-zinc-300 dark:bg-zinc-600 group-hover:bg-zinc-400 dark:group-hover:bg-zinc-500'}`} style={{ height: `${Math.min(100, (d.hours / userSettings.dailyTarget) * 100)}%` }}></div>
+                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 dark:bg-white text-white dark:text-zinc-900 text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold pointer-events-none shadow-lg">
+                                            {formatDuration(d.hours)}
+                                        </div>
                                     </div>
                                     <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{d.day}</span>
                                 </div>
@@ -774,7 +824,7 @@ const App = () => {
                     <div className="flex items-center justify-center gap-6 relative z-10">
                         {!isTimerRunning ? (
                             <button 
-                                onClick={() => setIsTimerRunning(true)}
+                                onClick={handleStartTimer}
                                 className="group relative flex items-center justify-center w-24 h-24 rounded-full bg-emerald-500 text-white shadow-[0_0_40px_rgba(16,185,129,0.4)] hover:scale-110 hover:shadow-[0_0_60px_rgba(16,185,129,0.6)] transition-all duration-300"
                             >
                                 <Play size={36} fill="currentColor" className="ml-1" />
@@ -782,7 +832,7 @@ const App = () => {
                             </button>
                         ) : (
                             <button 
-                                onClick={() => setIsTimerRunning(false)}
+                                onClick={handlePauseTimer}
                                 className="group relative flex items-center justify-center w-24 h-24 rounded-full bg-amber-500 text-white shadow-[0_0_40px_rgba(245,158,11,0.4)] hover:scale-110 hover:shadow-[0_0_60px_rgba(245,158,11,0.6)] transition-all duration-300"
                             >
                                 <Pause size={36} fill="currentColor" />
@@ -822,6 +872,7 @@ const App = () => {
                         const topics = data.topics || [];
                         const weight = data.weight || 0;
                         const isExpanded = expandedSubjects[subject];
+                        // Calc weighted progress for this subject
                         const totalSubWeight = weight;
                         const weightPerTopic = totalSubWeight / (topics.length || 1);
                         let earnedWeight = 0;
