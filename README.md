@@ -1,166 +1,189 @@
-🎓 GATE 2026 Study Tracker Pro
+# 🎓 GATE 2026 Study Tracker Pro
 
-A specialized, analytics-driven productivity application designed for GATE Data Science & AI (DA) aspirants. This application helps students track study hours, visualize consistency through heatmaps, and analyze subject-wise distribution to ensure comprehensive preparation for the 2026 exam.
+A **premium, analytics-driven preparation platform** designed specifically for **GATE 2026 aspirants**.
+Beyond basic time tracking, this application manages your full syllabus, revision cycles, study logs, and analytics — all wrapped in a clean, **Cursor AI–inspired dark UI**.
 
-✨ Features
+---
 
-🎯 Exam Countdown: Real-time countdown to February 15, 2026, keeping the goal in sight.
+## 🔗 Live Demo
 
-📅 Interactive Calendar: A GitHub-style heatmap calendar to visualize daily consistency.
+👉 **[https://study-tracker-pied.vercel.app/](https://study-tracker-pied.vercel.app/)**
 
-📊 Advanced Analytics:
+---
 
-Subject Breakdown: Track hours spent on specific GATE DA subjects (Probability, ML, AI, etc.).
+## ✨ Key Features
 
-Weekly Velocity: Bar chart showing study hours over the last 7 days.
+### 📊 **Analytics Dashboard**
 
-Completion Rate: Visual progress towards the daily target (default: 8 hours).
+* **Countdown Timer**
+  Pulsating real-time countdown to **February 15, 2026**.
+* **Weighted Progress**
+  Tracks completion based on **subject mark weightage**, not just topic count.
+* **Weekly Velocity**
+  Bar chart showing study intensity across the last 7 days.
+* **Smart Streaks**
+  Gamified daily streak system to help build consistency.
 
-🔥 Smart Streak System: Keeps track of consecutive study days to gamify discipline.
+---
 
-📝 Multi-Session Logging: Log multiple study sessions per day with specific notes and subjects.
+## 📚 **Syllabus & Revision Manager**
 
-🌓 Aesthetic UI: Fully responsive design with a "Cursor AI"-inspired Dark Mode (Glassmorphism, Zinc/Emerald palette).
+* **Multi-Stream Support**
+  Pre-loaded syllabi for:
 
-☁️ Cloud Sync: Google Authentication via Firebase ensures data is saved across devices.
+  * DA (Data Science & AI)
+  * CS
+  * EC
+  * EE
+  * ME
+  * CE
+* **Topic Tracking**
+  Fine-grained checklist for every topic & subtopic.
+* **Revision Counter**
+  Track number of revisions per topic (e.g., *Rev: 3*).
+* **Subject Breakdown**
+  Compare time spent vs subject weightage.
 
-🛠️ Tech Stack
+---
 
-Frontend: React (Vite)
+## 📝 **Advanced Logging**
 
-Styling: Tailwind CSS (with Glassmorphism effects)
+* **Multi-Session Logging**
+  Log morning Math, evening Aptitude — all in one day.
+* **Contextual Notes**
+  Add subjects, tags, and notes to each session.
+* **History Timeline**
+  View your daily study history directly inside the logging modal.
 
-Icons: Lucide React
+---
 
-Backend: Firebase (Firestore Database)
+## 🎨 **Pro UI/UX**
 
-Authentication: Firebase Auth (Google Sign-In)
+* **Cursor-Style Dark Mode**
+  Deep blacks, zinc accents, emerald highlights & glassmorphism.
+* **Responsive Layout**
 
-🚀 Getting Started
+  * Mobile → Calendar shown first
+  * Desktop → Analytics shown first
+* **Sticky Headers**
+  Month navigation remains visible while scrolling.
 
-Follow these instructions to get a copy of the project up and running on your local machine.
+---
 
-Prerequisites
+## 🛠️ Tech Stack
 
-Node.js (v18 or higher)
+| Layer              | Technology                                 |
+| ------------------ | ------------------------------------------ |
+| **Frontend**       | React 18 (Vite)                            |
+| **Styling**        | Tailwind CSS (Custom Zinc/Emerald Palette) |
+| **Icons**          | Lucide React                               |
+| **Backend**        | Firebase Firestore                         |
+| **Authentication** | Firebase Auth (Google Sign-In)             |
 
-npm (Node Package Manager)
+---
 
-A Google Firebase account
+## 🚀 Installation & Setup (For Local Development)
 
-Installation
+### **Prerequisites**
 
-Clone the repository
+* Node.js (v18+)
+* Firebase account
 
-git clone [https://github.com/vishnuwadkar/study-tracker.git](https://github.com/vishnuwadkar/study-tracker.git)
+---
+
+### **1. Clone the Repository**
+
+```bash
+git clone https://github.com/vishnuwadkar/study-tracker.git
 cd study-tracker
+```
 
+### **2. Install Dependencies**
 
-Install dependencies
-
+```bash
 npm install
+```
 
+---
 
-Configure Firebase
+### **3. Configure Firebase**
 
-Go to the Firebase Console.
+1. Open **console.firebase.google.com**
+2. Create a new project
+3. **Enable Google Sign-In**
+   Build → Authentication → Sign-in method → Google
+4. **Enable Firestore Database** (Start in Test Mode)
+5. **Register Web App** → Copy your firebaseConfig
 
-Create a new project (e.g., gate-tracker).
+---
 
-Register a web app (</>) to get your firebaseConfig object.
+### **4. Add API Keys**
 
-Enable Authentication: Go to Build > Authentication > Sign-in method > Enable Google.
+Inside `src/App.jsx`, replace:
 
-Enable Firestore: Go to Build > Firestore Database > Create Database > Start in Test Mode.
-
-Update Credentials
-
-Open src/App.jsx.
-
-Replace the firebaseConfig object at the top of the file with your own keys:
-
+```js
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "YOUR_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_BUCKET.appspot.com",
-  messagingSenderId: "...",
-  appId: "..."
+  // ...
 };
+```
 
+---
 
-Run the application
+### **5. Run the App Locally**
 
+```bash
 npm run dev
+```
 
+---
 
-Open http://localhost:5173 to view it in the browser.
+## 📱 Mobile Access (Local Network)
 
-Mobile Access (Local Network)
+To open on your phone while running on your PC:
 
-To access the app on your phone while running it on your PC (connected via Hotspot/Wi-Fi):
-
+```bash
 npm run dev -- --host
+```
 
+Use the network IP shown in the terminal:
 
-Then enter the Network IP shown in the terminal (e.g., http://192.168.x.x:5173) into your phone's browser.
+```
+http://192.168.x.x:5173
+```
 
-📂 Project Structure
+---
 
-study-tracker/
-├── src/
-│   ├── App.jsx          # Main application logic and UI
-│   ├── main.jsx         # React entry point
-│   ├── index.css        # Tailwind imports
-│   └── ...
-├── public/              # Static assets
-├── tailwind.config.js   # Tailwind configuration (Dark mode enabled)
-├── package.json         # Dependencies
-└── README.md            # Documentation
+## 📖 Syllabus Data
 
+The app includes structured syllabus datasets for:
 
-🎨 Subjects Included (GATE DA)
+* DA: Data Science & AI
+* CS: Computer Science
+* EC: Electronics & Communication
+* EE: Electrical Engineering
+* ME: Mechanical Engineering
+* CE: Civil Engineering
 
-The application comes pre-loaded with the syllabus for GATE Data Science & AI:
+To modify or extend the data, edit:
 
-Probability & Statistics
+```
+src/App.jsx → SYLLABUS_DATA object
+```
 
-Linear Algebra
+---
 
-Calculus
+## 📄 License
 
-Programming, Data Structures & Algorithms
+Distributed under the **MIT License**.
+See `LICENSE` for details.
 
-Database Management & Warehousing
+---
 
-Machine Learning
+## 👤 Author
 
-Artificial Intelligence
+**@vishnuwadkar**
+GitHub: [https://github.com/vishnuwadkar](https://github.com/vishnuwadkar)
 
-General Aptitude
-
-🤝 Contributing
-
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
-
-Fork the Project
-
-Create your Feature Branch (git checkout -b feature/AmazingFeature)
-
-Commit your Changes (git commit -m 'Add some AmazingFeature')
-
-Push to the Branch (git push origin feature/AmazingFeature)
-
-Open a Pull Request
-
-📄 License
-
-Distributed under the MIT License. See LICENSE for more information.
-
-👤 Author
-
-@vishnuwadkar
-
-GitHub: @vishnuwadkar
-
-Built with ❤️ for the GATE 2026 Community.
+**Built with ❤️ for the GATE 2026 Community.**
