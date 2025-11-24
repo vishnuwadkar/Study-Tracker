@@ -26,10 +26,16 @@ import {
   Sliders,
   CheckSquare,
   RefreshCw,
-  LayoutDashboard, // ✅ FIXED: Added this missing import
+  LayoutDashboard,
   ListChecks,
+  Timer,
+  Play,
+  Pause,
+  Square,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -147,6 +153,14 @@ const formatDateKey = (y, m, d) => {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 };
 
+// Format timer seconds to HH:MM:SS
+const formatTimer = (totalSeconds) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
 const App = () => {
   // --- State ---
   const [user, setUser] = useState(null);
@@ -154,7 +168,7 @@ const App = () => {
   const [selectedDate, setSelectedDate] = useState(null); 
   const [entries, setEntries] = useState({}); 
   const [syllabusProgress, setSyllabusProgress] = useState({});
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' | 'syllabus'
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' | 'syllabus' | 'timer'
   
   // Settings State
   const [userSettings, setUserSettings] = useState({
@@ -167,6 +181,12 @@ const App = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedSubjects, setExpandedSubjects] = useState({});
   
+  // Timer State
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [timerSubject, setTimerSubject] = useState('');
+  const [isZenMode, setIsZenMode] = useState(false);
+
   // Form State
   const [inputHours, setInputHours] = useState('');
   const [inputMinutes, setInputMinutes] = useState('');
@@ -182,7 +202,22 @@ const App = () => {
     return false;
   });
 
-  // --- Auth & Data Fetching ---
+  // --- Effects ---
+  
+  // Timer Logic
+  useEffect(() => {
+    let interval = null;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setTimerSeconds(s => s + 1);
+      }, 1000);
+    } else if (!isTimerRunning && timerSeconds !== 0) {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timerSeconds]);
+
+  // Auth & Data Fetching
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
@@ -195,7 +230,7 @@ const App = () => {
       const data = {};
       snapshot.forEach((doc) => { data[doc.id] = doc.data(); });
       setEntries(data);
-    });
+    }, (error) => console.error("Error:", error));
 
     const sylRef = doc(db, 'artifacts', appId, 'users', user.uid, 'syllabus', 'progress');
     const unsubSyl = onSnapshot(sylRef, (doc) => {
@@ -204,7 +239,14 @@ const App = () => {
 
     const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config');
     getDoc(settingsRef).then((snap) => {
-        if (snap.exists()) setUserSettings(snap.data());
+        if (snap.exists()) {
+            const data = snap.data();
+            setUserSettings(data);
+            // Initialize timer subject if empty
+            if (data.stream && SYLLABUS_DATA[data.stream]) {
+                setTimerSubject(Object.keys(SYLLABUS_DATA[data.stream])[0]);
+            }
+        }
     });
 
     return () => { unsubLogs(); unsubSyl(); };
@@ -220,6 +262,13 @@ const App = () => {
       localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
+
+  // Initialize timer subject on load if not set
+  useEffect(() => {
+    if (!timerSubject && userSettings.stream && SYLLABUS_DATA[userSettings.stream]) {
+        setTimerSubject(Object.keys(SYLLABUS_DATA[userSettings.stream])[0]);
+    }
+  }, [userSettings.stream, timerSubject]);
 
   // --- Handlers ---
   const handleGoogleLogin = async () => {
@@ -279,6 +328,27 @@ const App = () => {
     const subjects = Object.keys(SYLLABUS_DATA[userSettings.stream] || {});
     setInputSubject(subjects[0] || 'Other');
     setIsModalOpen(true);
+  };
+
+  const handleTimerFinish = () => {
+    setIsTimerRunning(false);
+    setIsZenMode(false);
+    
+    const h = Math.floor(timerSeconds / 3600);
+    const m = Math.round((timerSeconds % 3600) / 60);
+    
+    const today = new Date();
+    const dateKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    setSelectedDate(dateKey);
+    setInputHours(h.toString());
+    setInputMinutes(m.toString());
+    setInputSubject(timerSubject);
+    setInputNotes('Logged via Focus Timer');
+    
+    setTimerSeconds(0);
+    setIsModalOpen(true);
+    setActiveView('dashboard'); // Return to dashboard after timer
   };
 
   const handleSaveSession = async (e) => {
@@ -345,7 +415,6 @@ const App = () => {
     let last7DaysTotal = 0;
     const target = userSettings.dailyTarget;
 
-    // Calendar Stats
     for (let d = 1; d <= daysInMonth; d++) {
       const key = formatDateKey(year, month, d);
       const entry = entries[key];
@@ -364,7 +433,6 @@ const App = () => {
 
     const sortedSubjects = Object.entries(subjectTotals).sort(([,a], [,b]) => b - a).map(([name, hours]) => ({ name, hours, percent: monthlyTotal > 0 ? (hours / monthlyTotal) * 100 : 0 }));
 
-    // Streak
     const today = new Date();
     const todayKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
     let temp = new Date(today);
@@ -377,7 +445,6 @@ const App = () => {
         temp.setDate(temp.getDate() - 1);
     }
 
-    // Weekly
     const weeklyData = [];
     const chartEnd = new Date();
     for(let i=6; i>=0; i--) {
@@ -392,27 +459,21 @@ const App = () => {
     const examDiff = EXAM_DATE - new Date();
     const daysRemaining = Math.ceil(examDiff / (1000 * 60 * 60 * 24));
 
-    // Weighted Syllabus Stats
     let totalWeightedScore = 0;
     let achievedWeightedScore = 0;
     let totalRevisions = 0;
-    
     const streamData = SYLLABUS_DATA[userSettings.stream] || {};
-    
     Object.entries(streamData).forEach(([subject, data]) => {
         const weight = data.weight || 0;
         const topics = data.topics || [];
-        const topicWeight = weight / (topics.length || 1); // Weight per topic
-        
+        const topicWeight = weight / (topics.length || 1);
         totalWeightedScore += weight;
-        
         topics.forEach(topic => {
             const prog = syllabusProgress[subject]?.[topic];
             if (prog?.done) achievedWeightedScore += topicWeight;
             if (prog?.rev) totalRevisions += prog.rev;
         });
     });
-    
     const syllabusCompletion = totalWeightedScore > 0 ? Math.round((achievedWeightedScore / totalWeightedScore) * 100) : 0;
 
     return { monthlyTotal: monthlyTotal.toFixed(1), avgDaily: daysStudied > 0 ? (monthlyTotal / daysStudied).toFixed(1) : "0.0", completionRate: daysInMonth > 0 ? Math.round((daysTargetMet / new Date().getDate()) * 100) : 0, streak, weeklyData, last7DaysTotal: last7DaysTotal.toFixed(1), sortedSubjects, daysRemaining, syllabusCompletion, totalRevisions };
@@ -439,16 +500,19 @@ const App = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-4 transition-colors duration-300">
-        <div className="bg-white dark:bg-zinc-900/50 p-8 rounded-3xl shadow-2xl dark:shadow-none backdrop-blur-xl border border-zinc-200 dark:border-white/10 max-w-md w-full text-center">
-          <div className="bg-emerald-100 dark:bg-emerald-500/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-emerald-600 dark:text-emerald-400 ring-4 ring-emerald-50 dark:ring-emerald-900/20">
+        <div className="bg-white dark:bg-zinc-900/50 p-8 rounded-3xl shadow-2xl dark:shadow-none backdrop-blur-xl border border-zinc-200 dark:border-white/10 max-w-md w-full text-center relative overflow-hidden">
+          {/* Breathing Background Blob */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] animate-pulse-slow pointer-events-none"></div>
+          
+          <div className="bg-emerald-100 dark:bg-emerald-500/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-emerald-600 dark:text-emerald-400 ring-4 ring-emerald-50 dark:ring-emerald-900/20 relative z-10">
             <GraduationCap size={32} />
           </div>
-          <h1 className="text-3xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight">GATE<span className="text-emerald-600 dark:text-emerald-400">2026</span></h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mb-8">Master your preparation with precision analytics.</p>
-          <button onClick={handleGoogleLogin} className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg dark:shadow-white/10">
+          <h1 className="text-3xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight relative z-10">GATE<span className="text-emerald-600 dark:text-emerald-400">2026</span></h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mb-8 relative z-10">Master your preparation with precision analytics.</p>
+          <button onClick={handleGoogleLogin} className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg dark:shadow-white/10 relative z-10">
             <LogIn size={20} /> Sign in with Google
           </button>
-          <div className="mt-8 flex justify-center gap-4">
+          <div className="mt-8 flex justify-center gap-4 relative z-10">
              <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
                 {isDarkMode ? <Sun size={20}/> : <Moon size={20}/>}
              </button>
@@ -459,62 +523,75 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300 selection:bg-emerald-500/30">
+    <div className={`min-h-screen bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300 selection:bg-emerald-500/30 ${isTimerRunning && isZenMode ? 'overflow-hidden' : ''}`}>
       
-      {/* Top Navigation */}
-      <nav className="bg-white/80 dark:bg-black/50 border-b border-zinc-200 dark:border-white/10 sticky top-0 z-30 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-black/50 transition-colors duration-300">
-        <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
-            {/* Left: Logo + Title */}
-            <div className="flex items-center gap-4">
-                <div className="bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white p-2.5 rounded-xl shadow-lg shadow-emerald-500/20 dark:shadow-none">
-                    <GraduationCap size={22} />
+      {/* Top Navigation (Hidden in Zen Mode) */}
+      {(!isTimerRunning || !isZenMode) && (
+        <nav className="bg-white/80 dark:bg-black/50 border-b border-zinc-200 dark:border-white/10 sticky top-0 z-30 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-black/50 transition-colors duration-300">
+            <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
+                {/* Left: Logo + Title + Focus Button */}
+                <div className="flex items-center gap-4 sm:gap-6">
+                    <div className="bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white p-2.5 rounded-xl shadow-lg shadow-emerald-500/20 dark:shadow-none">
+                        <GraduationCap size={22} />
+                    </div>
+                    <div className="hidden sm:block">
+                        <h1 className="text-xl font-black tracking-tight text-zinc-900 dark:text-white leading-none">
+                            GATE <span className="text-emerald-600 dark:text-emerald-400">2026</span>
+                        </h1>
+                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest">{userSettings.stream}</p>
+                    </div>
+                    
+                    {/* Focus Timer Button (Moved here) */}
+                    <button 
+                        onClick={() => setActiveView('timer')}
+                        className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${activeView === 'timer' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10'}`}
+                    >
+                        <Timer size={16} className={activeView === 'timer' ? 'animate-pulse' : ''}/>
+                        <span className="hidden sm:inline">Focus Mode</span>
+                    </button>
                 </div>
-                <div className="hidden sm:block">
-                    <h1 className="text-xl font-black tracking-tight text-zinc-900 dark:text-white leading-none">
-                        GATE <span className="text-emerald-600 dark:text-emerald-400">2026</span>
-                    </h1>
-                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest">{userSettings.stream}</p>
+
+                {/* Center: View Toggles */}
+                <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-900/80 p-1 rounded-xl border border-zinc-200 dark:border-white/10">
+                    <button onClick={() => setActiveView('dashboard')} className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'dashboard' ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'}`}>
+                        <LayoutDashboard size={14} /> <span className="hidden sm:inline">Tracker</span>
+                    </button>
+                    <button onClick={() => setActiveView('syllabus')} className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'syllabus' ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'}`}>
+                        <ListChecks size={14} /> <span className="hidden sm:inline">Syllabus</span>
+                    </button>
+                </div>
+
+                {/* Right: Settings */}
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900/50 border border-transparent dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">
+                    {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                    </button>
+                    <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900/50 border border-transparent dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors" title="Settings">
+                    <Menu size={20} />
+                    </button>
                 </div>
             </div>
+        </nav>
+      )}
 
-            {/* Center: Toggles */}
-            <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-900/80 p-1 rounded-xl border border-zinc-200 dark:border-white/10">
-                <button onClick={() => setActiveView('dashboard')} className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'dashboard' ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'}`}>
-                    <LayoutDashboard size={14} /> <span className="hidden sm:inline">Tracker</span>
-                </button>
-                <button onClick={() => setActiveView('syllabus')} className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'syllabus' ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'}`}>
-                    <ListChecks size={14} /> <span className="hidden sm:inline">Syllabus</span>
-                </button>
-            </div>
-
-            {/* Right: Buttons */}
-            <div className="flex items-center gap-2">
-                <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900/50 border border-transparent dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">
-                  {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
-                <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-900/50 border border-transparent dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors" title="Settings">
-                  <Menu size={20} />
-                </button>
-            </div>
-        </div>
-      </nav>
-
-      <main className="max-w-6xl mx-auto p-4 sm:p-6">
-        {activeView === 'dashboard' ? (
+      <main className={`max-w-6xl mx-auto p-4 sm:p-6 ${isTimerRunning && isZenMode ? 'h-screen flex items-center justify-center p-0 m-0 max-w-none' : ''}`}>
+        {activeView === 'dashboard' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Left Column: Analytics */}
                 <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-28 lg:h-fit order-2 lg:order-1">
-                    {/* Countdown Card */}
+                    {/* Countdown Card (PULSATING YELLOW) */}
                     <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-700 p-6 rounded-3xl shadow-xl shadow-indigo-500/20 dark:shadow-none text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 border border-white/10">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl group-hover:bg-white/20 transition-all"></div>
+                        {/* Breathing background blob */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-3xl animate-pulse-slow"></div>
+                        
                         <div className="relative z-10 flex items-center justify-between">
                             <div>
                                 <p className="text-indigo-100 font-medium text-xs uppercase tracking-wider mb-1">Countdown to Exam</p>
                                 <h3 className="text-4xl font-black tracking-tighter">{stats.daysRemaining} <span className="text-lg font-medium opacity-80">days left</span></h3>
                                 <p className="text-xs text-indigo-200 mt-1">Feb 15, 2026</p>
                             </div>
-                            <div className="bg-amber-400/20 p-4 rounded-2xl backdrop-blur-md border border-amber-300/30 shadow-[0_0_20px_rgba(251,191,36,0.3)]">
-                                <Hourglass size={28} className="text-amber-300 animate-pulse drop-shadow-[0_0_12px_rgba(253,224,71,1)]" />
+                            <div className="bg-amber-400/20 p-4 rounded-2xl backdrop-blur-md border border-amber-300/30 shadow-[0_0_30px_rgba(251,191,36,0.3)] animate-pulse-slow">
+                                <Hourglass size={28} className="text-amber-300 drop-shadow-[0_0_10px_rgba(253,224,71,0.8)]" />
                             </div>
                         </div>
                     </div>
@@ -529,7 +606,7 @@ const App = () => {
                             <span className="text-xs font-bold bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-zinc-300 px-2 py-1 rounded-md">{stats.syllabusCompletion}%</span>
                         </div>
                         <div className="w-full bg-zinc-100 dark:bg-white/5 rounded-full h-2 mb-4">
-                            <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${stats.syllabusCompletion}%` }}></div>
+                            <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]" style={{ width: `${stats.syllabusCompletion}%` }}></div>
                         </div>
                         <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400">
                             <span>Total Revisions</span>
@@ -539,7 +616,7 @@ const App = () => {
 
                     {/* Streak Card */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 dark:bg-emerald-500/10 rounded-full -mr-10 -mt-10 blur-3xl"></div>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100 dark:bg-emerald-500/10 rounded-full -mr-10 -mt-10 blur-3xl animate-pulse-slow"></div>
                         <div className="relative z-10">
                             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-2">
                                 <Zap size={18} fill="currentColor" className={stats.streak > 0 ? "animate-pulse" : ""} />
@@ -579,10 +656,7 @@ const App = () => {
                             {stats.weeklyData.map((d, i) => (
                                 <div key={i} className="flex flex-col items-center gap-2 w-full h-full justify-end group">
                                     <div className="w-full flex-1 relative bg-zinc-100 dark:bg-zinc-800 rounded-t-lg overflow-hidden">
-                                        <div className={`absolute bottom-0 left-0 w-full rounded-t-lg transition-all duration-500 ${d.isTarget ? 'bg-emerald-500 dark:bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600 group-hover:bg-zinc-400 dark:group-hover:bg-zinc-500'}`} style={{ height: `${Math.min(100, (d.hours / userSettings.dailyTarget) * 100)}%` }}></div>
-                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 dark:bg-white text-white dark:text-zinc-900 text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold pointer-events-none shadow-lg">
-                                            {formatDuration(d.hours)}
-                                        </div>
+                                        <div className={`absolute bottom-0 left-0 w-full rounded-t-lg transition-all duration-500 ${d.isTarget ? 'bg-emerald-500 dark:bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-zinc-300 dark:bg-zinc-600 group-hover:bg-zinc-400 dark:group-hover:bg-zinc-500'}`} style={{ height: `${Math.min(100, (d.hours / userSettings.dailyTarget) * 100)}%` }}></div>
                                     </div>
                                     <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">{d.day}</span>
                                 </div>
@@ -633,7 +707,7 @@ const App = () => {
                                         >
                                             <div className="flex justify-between items-start">
                                                 <span className={`text-sm font-bold ${metTarget ? 'text-white/90' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}>{day}</span>
-                                                {metTarget && <Crown size={20} className="text-yellow-300 fill-yellow-300 drop-shadow-md" />}
+                                                {metTarget && <Crown size={20} className="text-yellow-300 fill-yellow-300 drop-shadow-md animate-pulse-slow" />}
                                             </div>
                                             {hours > 0 ? (
                                                 <div>
@@ -655,7 +729,81 @@ const App = () => {
                     </div>
                 </div>
             </div>
-        ) : (
+        )}
+
+        {/* TIMER VIEW */}
+        {activeView === 'timer' && (
+            <div className={`w-full h-full flex flex-col justify-center items-center relative transition-all duration-500 ${isZenMode ? 'scale-110' : ''}`}>
+                {/* Background Zen Glow */}
+                <div className="absolute inset-0 bg-emerald-500/10 dark:bg-emerald-500/10 blur-[120px] rounded-full -z-10 animate-pulse-slow"></div>
+                
+                <div className={`w-full max-w-2xl bg-white dark:bg-black/40 backdrop-blur-2xl p-8 md:p-12 rounded-[3rem] shadow-2xl border border-zinc-200 dark:border-white/5 text-center relative overflow-hidden transition-all duration-500 ${isZenMode ? 'border-none shadow-none bg-transparent' : ''}`}>
+                    
+                    {!isZenMode && (
+                        <div className="mb-8">
+                            <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3 block">Focus Session</label>
+                            <div className="relative inline-block w-full max-w-xs">
+                                <select 
+                                    value={timerSubject} 
+                                    onChange={(e) => setTimerSubject(e.target.value)}
+                                    className="w-full appearance-none bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl py-3 px-6 text-zinc-900 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-center cursor-pointer"
+                                    disabled={isTimerRunning}
+                                >
+                                    {Object.keys(activeStreamSubjects).map(s => <option key={s} value={s} className="dark:bg-zinc-900">{s}</option>)}
+                                </select>
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className={`font-black font-mono text-zinc-900 dark:text-white tracking-tighter mb-12 tabular-nums transition-all duration-500 ${isZenMode ? 'text-[12rem] md:text-[16rem] drop-shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'text-7xl md:text-9xl'}`}>
+                        {formatTimer(timerSeconds)}
+                    </div>
+
+                    {/* Zen Mode Toggle (Only visible when timer running) */}
+                    {isTimerRunning && (
+                        <button 
+                            onClick={() => setIsZenMode(!isZenMode)}
+                            className="absolute top-6 right-6 p-3 rounded-full bg-zinc-100 dark:bg-white/5 text-zinc-400 hover:text-white hover:bg-zinc-200 dark:hover:bg-white/10 transition-all z-20"
+                            title="Toggle Zen Mode"
+                        >
+                            {isZenMode ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                        </button>
+                    )}
+
+                    <div className="flex items-center justify-center gap-6 relative z-10">
+                        {!isTimerRunning ? (
+                            <button 
+                                onClick={() => setIsTimerRunning(true)}
+                                className="group relative flex items-center justify-center w-24 h-24 rounded-full bg-emerald-500 text-white shadow-[0_0_40px_rgba(16,185,129,0.4)] hover:scale-110 hover:shadow-[0_0_60px_rgba(16,185,129,0.6)] transition-all duration-300"
+                            >
+                                <Play size={36} fill="currentColor" className="ml-1" />
+                                <span className="absolute -bottom-10 text-xs font-bold text-emerald-600 dark:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity tracking-widest">START</span>
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={() => setIsTimerRunning(false)}
+                                className="group relative flex items-center justify-center w-24 h-24 rounded-full bg-amber-500 text-white shadow-[0_0_40px_rgba(245,158,11,0.4)] hover:scale-110 hover:shadow-[0_0_60px_rgba(245,158,11,0.6)] transition-all duration-300"
+                            >
+                                <Pause size={36} fill="currentColor" />
+                                <span className="absolute -bottom-10 text-xs font-bold text-amber-600 dark:text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity tracking-widest">PAUSE</span>
+                            </button>
+                        )}
+
+                        <button 
+                            onClick={handleTimerFinish}
+                            disabled={timerSeconds === 0}
+                            className="group relative flex items-center justify-center w-24 h-24 rounded-full bg-zinc-200 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-red-500 hover:text-white dark:hover:bg-red-600 dark:hover:text-white transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-zinc-200 disabled:hover:text-zinc-600"
+                        >
+                            <Square size={28} fill="currentColor" />
+                            <span className="absolute -bottom-10 text-xs font-bold text-red-500 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity tracking-widest">FINISH</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {activeView === 'syllabus' && (
             /* SYLLABUS VIEW */
             <div className="max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
@@ -674,7 +822,6 @@ const App = () => {
                         const topics = data.topics || [];
                         const weight = data.weight || 0;
                         const isExpanded = expandedSubjects[subject];
-                        // Calc weighted progress for this subject
                         const totalSubWeight = weight;
                         const weightPerTopic = totalSubWeight / (topics.length || 1);
                         let earnedWeight = 0;
@@ -742,10 +889,12 @@ const App = () => {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="py-10 text-center text-sm text-zinc-400 dark:text-zinc-600">
-        <p>&copy; {new Date().getFullYear()} <span className="font-bold text-zinc-500 dark:text-zinc-500">@vishnuwadkar</span>. All rights reserved.</p>
-      </footer>
+      {/* Footer (Hidden in Zen Mode) */}
+      {(!isTimerRunning || !isZenMode) && (
+        <footer className="py-10 text-center text-sm text-zinc-400 dark:text-zinc-600">
+            <p>&copy; {new Date().getFullYear()} <span className="font-bold text-zinc-500 dark:text-zinc-500">@vishnuwadkar</span>. All rights reserved.</p>
+        </footer>
+      )}
       
       {/* Modal: Log Session (Split Screen V7) */}
       {isModalOpen && (
