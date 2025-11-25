@@ -38,7 +38,7 @@ import {
   RefreshCw,
   User,
   BrainCircuit,
-  Lightbulb
+  Plus
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -78,42 +78,80 @@ const appId = "my-study-tracker";
 const TARGET_HOURS = 8;
 const EXAM_DATE = new Date('2026-02-15');
 
-// Syllabus Data
+// Detailed Syllabus Data based on GATE 2026 PDF
 const SYLLABUS_DATA = {
   DA: {
     "Probability & Statistics": {
-        weight: 15,
-        topics: ["Counting (Permutations & Combinations)", "Probability Axioms & Sample Space", "Conditional Probability & Bayes Theorem", "Random Variables (Discrete & Continuous)", "Mean, Median, Mode, Std Dev", "Correlation & Covariance", "Bernoulli, Binomial, Poisson Distributions", "Uniform, Normal, Exponential Distributions", "t, chi-squared, F Distributions", "Central Limit Theorem & Confidence Interval", "Hypothesis Testing (z, t, chi-square tests)"]
+        weight: 17,
+        topics: [
+            "Counting (permutation and combinations)", "Probability axioms", "Sample space & events", 
+            "Independent & mutually exclusive events", "Marginal, conditional and joint probability", "Bayes Theorem", 
+            "Conditional expectation and variance", "Mean, median, mode and standard deviation", 
+            "Correlation and covariance", "Random variables", "Discrete random variables & PMF", 
+            "Uniform, Bernoulli, binomial distribution", "Continuous random variables & PDF", 
+            "Uniform, exponential, Poisson, normal, standard normal", "t-distribution, chi-squared distributions", 
+            "Cumulative distribution function", "Conditional PDF", "Central limit theorem", 
+            "Confidence interval", "z-test, t-test, chi-squared test"
+        ]
     },
     "Linear Algebra": {
-        weight: 10,
-        topics: ["Vector Spaces & Subspaces", "Linear Dependence & Independence", "Matrices, Determinants & Rank", "Systems of Linear Equations", "Eigenvalues & Eigenvectors", "LU Decomposition", "Singular Value Decomposition (SVD)", "Projections & Orthogonal Matrix"]
+        weight: 11,
+        topics: [
+            "Vector space, subspaces", "Linear dependence and independence", "Matrices & Projection matrix", 
+            "Orthogonal matrix, Idempotent matrix", "Partition matrix and their properties", "Quadratic forms", 
+            "Systems of linear equations and solutions", "Gaussian elimination", "Eigenvalues and eigenvectors", 
+            "Determinant, rank, nullity", "Projections", "LU decomposition", "Singular value decomposition"
+        ]
     },
     "Calculus & Optimization": {
-        weight: 10,
-        topics: ["Limits, Continuity & Differentiability", "Taylor Series", "Maxima & Minima (Single Variable)", "Optimization (Single Variable)"]
+        weight: 8,
+        topics: [
+            "Functions of a single variable", "Limit, continuity and differentiability", "Taylor series", 
+            "Maxima and minima", "Optimization involving a single variable"
+        ]
     },
-    "Prog, DS & Algo": {
-        weight: 12,
-        topics: ["Programming in Python", "Stacks, Queues, Linked Lists", "Trees & Hash Tables", "Linear & Binary Search", "Sorting (Selection, Bubble, Insertion)", "Divide & Conquer (Mergesort, Quicksort)", "Graph Theory Basics", "Graph Traversals & Shortest Path"]
+    "Programming, DS & Algo": {
+        weight: 17,
+        topics: [
+            "Programming in Python", "Stacks, queues, linked lists", "Trees, hash tables", 
+            "Linear search and binary search", "Selection sort, bubble sort and insertion sort", 
+            "Divide and conquer: mergesort, quicksort", "Introduction to graph theory", "Graph traversals and shortest path"
+        ]
     },
     "Database Mgmt & Warehousing": {
-        weight: 10,
-        topics: ["ER Models & Relational Model", "Relational Algebra & Tuple Calculus", "SQL & Integrity Constraints", "Normal Forms (Normalization)", "File Organization & Indexing", "Data Transformations (Normalization, Sampling)", "Data Warehouse Modelling (Schema)"]
+        weight: 8,
+        topics: [
+            "ER-model, Relational model", "Relational algebra, tuple calculus", "SQL, integrity constraints", 
+            "Normal form", "File organization, indexing", "Data types", "Data transformation (normalization, discretization, sampling)", 
+            "Data warehouse modelling: schema for multidimensional data models", "Concept hierarchies", "Measures: categorization and computations"
+        ]
     },
     "Machine Learning": {
         weight: 15,
-        topics: ["Regression (Simple, Multiple, Ridge)", "Logistic Regression", "k-Nearest Neighbour & Naive Bayes", "Linear Discriminant Analysis", "Support Vector Machine (SVM)", "Decision Trees & Bias-Variance Trade-off", "Cross-Validation (LOO, k-folds)", "Neural Networks (MLP, Feed-forward)", "Clustering (k-means, Hierarchical)", "Dimensionality Reduction (PCA)"]
+        topics: [
+            "Supervised Learning: regression and classification", "Simple & multiple linear regression", "Ridge regression, logistic regression", 
+            "k-nearest neighbour, naive Bayes classifier", "Linear discriminant analysis", "Support vector machine", 
+            "Decision trees", "Bias-variance trade-off", "Cross-validation (LOO, k-folds)", 
+            "Multi-layer perceptron, feed-forward neural network", "Unsupervised Learning: clustering algorithms", 
+            "k-means/k-medoid, hierarchical clustering", "Dimensionality reduction (PCA)"
+        ]
     },
     "Artificial Intelligence": {
-        weight: 10,
-        topics: ["Search (Informed, Uninformed, Adversarial)", "Logic (Propositional, Predicate)", "Reasoning under Uncertainty", "Conditional Independence", "Inference (Exact & Approximate)"]
+        weight: 8,
+        topics: [
+            "Search: informed, uninformed, adversarial", "Logic, propositional, predicate", 
+            "Reasoning under uncertainty", "Conditional independence representation", 
+            "Exact inference through variable elimination", "Approximate inference through sampling"
+        ]
     },
     "General Aptitude": {
         weight: 15,
         topics: ["Verbal Ability", "Quantitative Aptitude", "Analytical Aptitude", "Spatial Aptitude"]
     },
-    "Other":{}
+    "Other": {
+        weight: 0,
+        topics: ["Mock Tests", "Revision", "Miscellaneous"]
+    }
   },
   CS: {
     "Digital Logic": { weight: 5, topics: ["Boolean Algebra", "Combinational Circuits", "Sequential Circuits", "Number Rep", "Computer Arithmetic"] },
@@ -126,7 +164,8 @@ const SYLLABUS_DATA = {
     "DBMS": { weight: 8, topics: ["ER Model", "Relational Algebra", "SQL", "Normalization", "Transactions", "Concurrency"] },
     "Computer Networks": { weight: 8, topics: ["OSI/TCP-IP", "IP Addressing", "Routing", "TCP/UDP", "App Layer"] },
     "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
-    "Engineering Math": { weight: 10, topics: ["Linear Algebra", "Calculus", "Probability", "Discrete Math"] }
+    "Engineering Math": { weight: 10, topics: ["Linear Algebra", "Calculus", "Probability", "Discrete Math"] },
+    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
   },
   // Fallback structure for other streams
   Other: { "General Subject": { weight: 100, topics: ["Topic 1", "Topic 2"] } }
@@ -206,8 +245,11 @@ const App = () => {
   const [userSettings, setUserSettings] = useState({ stream: 'DA', dailyTarget: 8, displayName: '' });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('view'); // 'view' | 'add'
   const [expandedSubjects, setExpandedSubjects] = useState({});
   const [deleteConfirm, setDeleteConfirm] = useState(null); 
+  
+  // Timer
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [startTime, setStartTime] = useState(null); 
@@ -215,11 +257,14 @@ const App = () => {
   const [isZenMode, setIsZenMode] = useState(false);
   const [wakeLock, setWakeLock] = useState(null);
   const [sessionStartTime, setSessionStartTime] = useState(null);
+
+  // Form
   const [inputHours, setInputHours] = useState('');
   const [inputMinutes, setInputMinutes] = useState('');
   const [inputNotes, setInputNotes] = useState('');
   const [inputSubject, setInputSubject] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
     return false;
@@ -299,17 +344,23 @@ const App = () => {
     setIsTimerRunning(true); requestWakeLock();
   };
   const handlePauseTimer = () => { setIsTimerRunning(false); releaseWakeLock(); };
+  
   const handleTimerFinish = () => {
     setIsTimerRunning(false); setIsZenMode(false); releaseWakeLock();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     const h = Math.floor(timerSeconds / 3600); const m = Math.round((timerSeconds % 3600) / 60);
     const today = new Date(); const dateKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
     setSelectedDate(dateKey); setInputHours(h.toString()); setInputMinutes(m.toString()); setInputSubject(timerSubject);
+    
+    // Format Time String for Note Pre-fill
     const timeStr = sessionStartTime ? formatTimeOnly(sessionStartTime) : formatTimeOnly(new Date().toISOString());
     setInputNotes(`Started at ${timeStr} via Focus Timer`);
-    setTimerSeconds(0); setStartTime(null); setSessionStartTime(null);
-    localStorage.removeItem('timerStart'); localStorage.removeItem('isTimerRunning'); localStorage.removeItem('sessionStartTime');
-    setIsModalOpen(true); setActiveView('dashboard'); 
+    
+    setTimerSeconds(0); setStartTime(null);
+    localStorage.removeItem('timerStart'); localStorage.removeItem('isTimerRunning');
+    // NOTE: We do NOT clear sessionStartTime here, we need it for saving!
+    
+    setIsModalOpen(true); setModalMode('add'); setActiveView('dashboard'); 
   };
   const handleGoogleLogin = async () => { const provider = new GoogleAuthProvider(); try { await signInWithPopup(auth, provider); } catch (error) { alert(error.message); } };
   const handleLogout = async () => { try { await signOut(auth); setEntries({}); setSyllabusProgress({}); setIsSettingsOpen(false); } catch (error) { console.error(error); } };
@@ -332,7 +383,8 @@ const App = () => {
     const dateKey = formatDateKey(year, month, day);
     setSelectedDate(dateKey); setInputHours(''); setInputMinutes(''); setInputNotes('');
     setInputSubject(Object.keys(SYLLABUS_DATA[userSettings.stream] || {})[0] || 'Other');
-    setIsModalOpen(true);
+    setSessionStartTime(null); // Reset for manual entry
+    setModalMode('view'); setIsModalOpen(true);
   };
   const handleSaveSession = async (e) => {
     e.preventDefault();
@@ -346,13 +398,20 @@ const App = () => {
         const currentEntry = entries[selectedDate] || {};
         let sessions = currentEntry.sessions || [];
         if (!currentEntry.sessions && currentEntry.hours) { sessions = [{ id: 'legacy', subject: currentEntry.subject || 'Other', hours: currentEntry.hours, notes: currentEntry.notes || '' }]; }
-        let timeLog = new Date().toISOString(); 
+        
+        // Use sessionStartTime if it exists (from timer), otherwise use current time
+        let timeLog = sessionStartTime || new Date().toISOString(); 
+        
         const newSession = { id: Date.now().toString(), subject: inputSubject, hours: sessionHours, notes: inputNotes, timestamp: timeLog };
         const updatedSessions = [...sessions, newSession];
+        updatedSessions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         const newTotalHours = updatedSessions.reduce((sum, s) => sum + s.hours, 0);
         await setDoc(docRef, { hours: newTotalHours, sessions: updatedSessions, updatedAt: new Date().toISOString() });
       }
-      setInputHours(''); setInputMinutes(''); setInputNotes(''); setIsLoading(false);
+      // Reset
+      setInputHours(''); setInputMinutes(''); setInputNotes(''); 
+      setSessionStartTime(null); localStorage.removeItem('sessionStartTime');
+      setIsLoading(false); setModalMode('view');
     } catch (err) { console.error("Save error", err); setIsLoading(false); }
   };
   const handleDeleteSession = async (sessionId) => {
@@ -442,7 +501,7 @@ const App = () => {
     }
 
     const weeklyData = [];
-    const chartEnd = new Date();
+    const chartEnd = new Date(today); // normalized
     for(let i=6; i>=0; i--) {
         const d = new Date(chartEnd);
         d.setDate(d.getDate() - i);
@@ -452,9 +511,10 @@ const App = () => {
         weeklyData.push({ day: d.toLocaleDateString('en-US', { weekday: 'short' }), hours: hrs, isTarget: hrs >= userSettings.dailyTarget });
     }
 
-    const examDiff = EXAM_DATE - new Date();
+    const examDiff = EXAM_DATE.getTime() - today.getTime(); 
     const daysRemaining = Math.ceil(examDiff / (1000 * 60 * 60 * 24));
 
+    // Weighted Syllabus
     let totalWeightedScore = 0; let achievedWeightedScore = 0; let totalRevisions = 0;
     const streamData = SYLLABUS_DATA[userSettings.stream] || {};
     Object.entries(streamData).forEach(([subject, data]) => {
@@ -469,7 +529,7 @@ const App = () => {
     });
     const syllabusCompletion = totalWeightedScore > 0 ? Math.round((achievedWeightedScore / totalWeightedScore) * 100) : 0;
 
-    return { monthlyTotal: monthlyTotal.toFixed(1), avgDaily: daysStudied > 0 ? (monthlyTotal / daysStudied).toFixed(1) : "0.0", completionRate: daysInMonth > 0 ? Math.round((daysTargetMet / new Date().getDate()) * 100) : 0, streak, weeklyData, last7DaysTotal: last7DaysTotal.toFixed(1), sortedSubjects, daysRemaining, syllabusCompletion, totalRevisions, todayHours, todayBreakdown, peakTime, bestSubject };
+    return { monthlyTotal: parseFloat(monthlyTotal.toFixed(1)), avgDaily: daysStudied > 0 ? parseFloat((monthlyTotal / daysStudied).toFixed(1)) : 0, completionRate: daysInMonth > 0 ? Math.round((daysTargetMet / new Date().getDate()) * 100) : 0, streak, weeklyData, last7DaysTotal: parseFloat(last7DaysTotal.toFixed(1)), sortedSubjects, daysRemaining, syllabusCompletion, totalRevisions, todayHours, todayBreakdown, peakTime, bestSubject };
   }, [entries, year, month, daysInMonth, userSettings, syllabusProgress]);
 
   const getCellColor = (hours) => {
@@ -564,35 +624,21 @@ const App = () => {
         </nav>
       )}
 
-      <main className={`max-w-6xl mx-auto p-4 sm:p-6 ${isTimerRunning && isZenMode ? 'h-[100dvh] fixed inset-0 z-[100] bg-black flex items-center justify-center p-0 m-0 max-w-none w-full' : ''}`}>
+      <main className={`max-w-6xl mx-auto p-4 sm:p-6 ${isTimerRunning && isZenMode ? 'h-[100dvh] w-[100vw] fixed inset-0 z-[9999] bg-black flex items-center justify-center p-0 m-0 max-w-none overflow-hidden' : ''}`}>
         {activeView === 'dashboard' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Left Column */}
                 <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-28 lg:h-fit order-2 lg:order-1">
                     
-                    {/* 1. MOBILE HEADS-UP DISPLAY (Split Header) */}
-                    <div className="grid grid-cols-2 gap-4 md:hidden">
-                         {/* Countdown (Mobile) */}
-                         <div className="bg-gradient-to-br from-amber-500/20 to-amber-600/20 backdrop-blur-xl p-4 rounded-2xl border border-amber-500/20 shadow-sm">
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Days Left</p>
-                            <div className="text-3xl font-black text-white">{stats.daysRemaining}</div>
-                         </div>
-                         {/* Target (Mobile) */}
-                         <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-4 rounded-2xl border border-zinc-200 dark:border-white/10 shadow-sm">
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Target Left</p>
-                            <div className="text-3xl font-black text-white">{Math.max(0, userSettings.dailyTarget - stats.todayHours).toFixed(1)}<span className="text-sm font-medium text-zinc-500">h</span></div>
-                         </div>
-                    </div>
-
-                    {/* 2. DAILY TARGET (Desktop Only) */}
-                    <div className="hidden md:block bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden group">
+                    {/* 1. HOURS LEFT TODAY */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden group">
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Daily Target</h3>
                             <Target size={18} className="text-amber-500" />
                         </div>
                         <div className="flex items-end gap-2 mb-2">
                             <span className="text-4xl font-black text-zinc-900 dark:text-white tracking-tight">
-                                {Math.max(0, userSettings.dailyTarget - stats.todayHours).toFixed(1)}
+                                {parseFloat(Math.max(0, userSettings.dailyTarget - stats.todayHours).toFixed(1))}
                             </span>
                             <span className="text-lg font-medium text-zinc-400 mb-1">hours left</span>
                         </div>
@@ -611,7 +657,24 @@ const App = () => {
                         )}
                     </div>
 
-                    {/* 3. TODAY'S BREAKDOWN (Moved Up) */}
+                    {/* 2. SMART INSIGHTS */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
+                        <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BrainCircuit size={16} className="text-amber-500" /> Productivity
+                        </h3>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
+                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Peak Time</span>
+                                <span className="text-sm font-bold text-zinc-800 dark:text-white capitalize">{stats.peakTime || '-'}</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
+                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
+                                <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. TODAY'S BREAKDOWN */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
                         <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">Studied Today</h3>
                         <div className="space-y-3">
@@ -645,24 +708,44 @@ const App = () => {
                         </div>
                     </div>
 
-                    {/* 5. SMART INSIGHTS */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
-                        <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <BrainCircuit size={16} className="text-amber-500" /> Productivity
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Peak Time</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white capitalize">{stats.peakTime || '-'}</span>
+                    {/* 5. SYLLABUS STATUS */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden">
+                        <div className="flex items-center justify-between mb-4 relative z-10">
+                            <div>
+                                <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Syllabus Status</h3>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">{stats.syllabusCompletion}%</span>
+                                    <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Completed</span>
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
+                            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-lg">
+                                <BookOpen size={20} className="text-emerald-600 dark:text-emerald-400" />
                             </div>
+                        </div>
+                        <div className="relative w-full h-4 bg-zinc-100 dark:bg-white/5 rounded-full overflow-hidden">
+                            <div className="absolute inset-0 bg-emerald-500/10 animate-pulse"></div>
+                            <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(16,185,129,0.4)]" style={{ width: `${stats.syllabusCompletion}%` }}>
+                                <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/50 blur-[1px]"></div>
+                            </div>
+                        </div>
+                        <p className="text-xs text-zinc-400 mt-3 font-medium flex items-center gap-1"><Zap size={12} className="text-amber-500" fill="currentColor" /><span>{stats.totalRevisions} total topic revisions recorded</span></p>
+                    </div>
+
+                    {/* 6. MINI STATS */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
+                            <Clock size={20} className="text-blue-500 mb-3" />
+                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.monthlyTotal}h</div>
+                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Total Hours</div>
+                        </div>
+                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
+                            <Target size={20} className="text-purple-500 mb-3" />
+                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.completionRate}%</div>
+                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Completion</div>
                         </div>
                     </div>
 
-                    {/* 6. WEEKLY CHART */}
+                    {/* 7. WEEKLY CHART */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-2">
@@ -690,14 +773,14 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Right Column: Calendar (Order 1 on Mobile) */}
+                {/* Right Column: Calendar */}
                 <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
-                    {/* Countdown Card (Desktop Only - Hidden on Mobile to save space) */}
-                    <div className="hidden md:block bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
+                    {/* Countdown Card */}
+                    <div className="bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full -mr-20 -mt-20 blur-[80px] animate-pulse-slow"></div>
-                        <div className="relative z-10 flex flex-row items-center justify-between gap-4">
-                            <div className="text-left">
-                                <div className="flex items-center justify-start gap-2 mb-1 sm:mb-2">
+                        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="text-center sm:text-left w-full sm:w-auto">
+                                <div className="flex items-center justify-center sm:justify-start gap-2 mb-1 sm:mb-2">
                                     <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-zinc-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-widest border border-zinc-200 dark:border-white/10">Exam Date</span>
                                     <span className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">Feb 15, 2026</span>
                                 </div>
@@ -940,16 +1023,30 @@ const App = () => {
         </footer>
       )}
       
-      {/* Modal: Log Session (Split Screen V7) */}
+      {/* Modal: Log Session */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/20 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-4xl rounded-[2.5rem] shadow-2xl dark:shadow-black/50 overflow-hidden animate-in zoom-in-95 duration-200 border border-zinc-200 dark:border-white/10 flex flex-col md:flex-row max-h-[90vh]">
             
-            {/* Left Column: History List */}
-            <div className="w-full md:w-1/2 bg-zinc-50/50 dark:bg-black/20 p-6 md:p-8 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-white/5 flex flex-col h-[250px] md:h-auto order-2 md:order-1">
-                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Clock size={14}/> Today's History
-                </h3>
+            {/* Mode Switcher (Mobile) */}
+            <div className="md:hidden flex border-b border-zinc-200 dark:border-white/5">
+                <button onClick={() => setModalMode('view')} className={`flex-1 py-4 text-sm font-bold text-center ${modalMode === 'view' ? 'text-amber-500 bg-zinc-50 dark:bg-white/5' : 'text-zinc-400'}`}>Overview</button>
+                <button onClick={() => setModalMode('add')} className={`flex-1 py-4 text-sm font-bold text-center ${modalMode === 'add' ? 'text-amber-500 bg-zinc-50 dark:bg-white/5' : 'text-zinc-400'}`}>Add Session</button>
+            </div>
+
+            {/* Left Column: Day Overview */}
+            <div className={`w-full md:w-1/2 bg-zinc-50/50 dark:bg-black/20 p-6 md:p-8 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-white/5 flex-col h-full md:flex ${modalMode === 'view' ? 'flex' : 'hidden'}`}>
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Day Overview</h3>
+                        <p className="text-xs text-zinc-400 font-medium mt-1">{selectedDate}</p>
+                    </div>
+                    <div className="text-right">
+                        <span className="text-2xl font-black text-amber-500">{parseFloat((entries[selectedDate]?.hours || 0).toFixed(1))}h</span>
+                        <p className="text-[10px] text-zinc-400 font-bold uppercase">Total Time</p>
+                    </div>
+                </div>
+
                 <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                     {getSelectedSessions().length > 0 ? (
                         getSelectedSessions().map((s, idx) => (
@@ -973,10 +1070,17 @@ const App = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Desktop: Add Session Button (Moves to Right Pane) */}
+                <div className="mt-6 md:hidden">
+                     <button onClick={() => setModalMode('add')} className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg">
+                        <Plus size={18} /> Add Session
+                     </button>
+                </div>
             </div>
 
             {/* Right Column: Input Form */}
-            <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col order-1 md:order-2 relative bg-white dark:bg-zinc-900">
+            <div className={`w-full md:w-1/2 p-6 md:p-8 flex-col relative bg-white dark:bg-zinc-900 h-full md:flex ${modalMode === 'add' ? 'flex' : 'hidden'}`}>
                 <div className="flex justify-between items-center mb-8">
                     <div>
                         <h3 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">Add Session</h3>
@@ -1015,9 +1119,12 @@ const App = () => {
                         <textarea value={inputNotes} onChange={(e) => setInputNotes(e.target.value)} placeholder="What did you achieve?" rows={2} className="w-full p-4 bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none transition-all resize-none text-zinc-700 dark:text-zinc-200 text-sm placeholder:text-zinc-400" />
                     </div>
                     
-                    <button type="submit" disabled={isLoading} className="w-full bg-amber-500 text-white py-4 rounded-2xl font-bold hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 mt-auto">
-                        {isLoading ? "Saving..." : <><Save size={18} /> Add Session</>}
-                    </button>
+                    <div className="mt-auto flex gap-3">
+                        <button type="button" onClick={() => setModalMode('view')} className="flex-1 md:hidden py-4 rounded-2xl font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800">Back</button>
+                        <button type="submit" disabled={isLoading} className="flex-[2] w-full bg-amber-500 text-white py-4 rounded-2xl font-bold hover:bg-amber-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+                            {isLoading ? "Saving..." : <><Save size={18} /> Save Session</>}
+                        </button>
+                    </div>
                 </form>
             </div>
           </div>
