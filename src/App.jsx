@@ -418,7 +418,7 @@ const App = () => {
     const todayBreakdown = Object.entries(todaySubjects).sort(([,a], [,b]) => b - a);
     
     // Determine peak productivity
-    const peakTime = Object.entries(timeOfDay).sort(([,a], [,b]) => b - a)[0][0];
+    const peakTime = Object.entries(timeOfDay).sort(([,a], [,b]) => b - a)[0]?.[0] || '-';
     const bestSubject = sortedSubjects.length > 0 ? sortedSubjects[0].name : "None";
 
     const today = new Date();
@@ -588,21 +588,7 @@ const App = () => {
                         )}
                     </div>
 
-                    {/* 2. STREAK CARD */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 dark:bg-amber-500/10 rounded-full -mr-10 -mt-10 blur-3xl animate-pulse-slow"></div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2">
-                                <Zap size={18} fill="currentColor" className={stats.streak > 0 ? "animate-pulse" : ""} />
-                                <span className="text-xs font-bold uppercase tracking-wider">Current Streak</span>
-                            </div>
-                            <div className="text-5xl font-black text-zinc-900 dark:text-white tracking-tight">
-                                {stats.streak}<span className="text-lg text-zinc-400 dark:text-zinc-500 font-medium ml-1">days</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 3. TODAY'S BREAKDOWN */}
+                    {/* 2. TODAY'S BREAKDOWN */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
                         <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">Studied Today</h3>
                         <div className="space-y-3">
@@ -622,7 +608,7 @@ const App = () => {
                         </div>
                     </div>
 
-                    {/* 4. SMART INSIGHTS */}
+                    {/* 3. SMART INSIGHTS */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
                         <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                             <BrainCircuit size={16} className="text-amber-500" /> Productivity
@@ -635,6 +621,20 @@ const App = () => {
                             <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
                                 <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
                                 <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 4. STREAK CARD */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 dark:bg-amber-500/10 rounded-full -mr-10 -mt-10 blur-3xl animate-pulse-slow"></div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2">
+                                <Zap size={18} fill="currentColor" className={stats.streak > 0 ? "animate-pulse" : ""} />
+                                <span className="text-xs font-bold uppercase tracking-wider">Current Streak</span>
+                            </div>
+                            <div className="text-5xl font-black text-zinc-900 dark:text-white tracking-tight">
+                                {stats.streak}<span className="text-lg text-zinc-400 dark:text-zinc-500 font-medium ml-1">days</span>
                             </div>
                         </div>
                     </div>
@@ -674,21 +674,7 @@ const App = () => {
                         </p>
                     </div>
 
-                    {/* 6. MINI STATS */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
-                            <Clock size={20} className="text-blue-500 mb-3" />
-                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.monthlyTotal}h</div>
-                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Total Hours</div>
-                        </div>
-                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
-                            <Target size={20} className="text-purple-500 mb-3" />
-                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.completionRate}%</div>
-                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Completion</div>
-                        </div>
-                    </div>
-
-                    {/* 7. WEEKLY CHART */}
+                    {/* 6. WEEKLY CHART */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-2">
@@ -716,23 +702,23 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Right Column: Calendar (Order 1 on Mobile) */}
+                {/* Right Column: Calendar */}
                 <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
                     {/* Countdown Card */}
-                    <div className="bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-8 rounded-[2.5rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
+                    <div className="bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full -mr-20 -mt-20 blur-[80px] animate-pulse-slow"></div>
-                        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                        <div className="relative z-10 flex flex-row items-center justify-between gap-4">
                             <div>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className="px-3 py-1 rounded-full bg-zinc-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-widest border border-zinc-200 dark:border-white/10">Exam Date</span>
-                                    <span className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">Feb 15, 2026</span>
+                                <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                                    <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-zinc-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-widest border border-zinc-200 dark:border-white/10">Exam Date</span>
+                                    <span className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">Feb 15, 2026</span>
                                 </div>
-                                <h3 className="text-5xl sm:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400">
-                                    {stats.daysRemaining} <span className="text-2xl sm:text-3xl font-medium text-zinc-500">days</span>
+                                <h3 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400">
+                                    {stats.daysRemaining} <span className="text-xl sm:text-2xl md:text-3xl font-medium text-zinc-500">days</span>
                                 </h3>
                             </div>
-                            <div className="bg-amber-500/10 p-5 rounded-3xl backdrop-blur-md border border-amber-500/30 shadow-[0_0_40px_rgba(245,158,11,0.2)]">
-                                <Hourglass size={40} className="text-amber-500 animate-pulse drop-shadow-[0_0_15px_rgba(251,191,36,0.8)]" />
+                            <div className="bg-amber-500/10 p-3 sm:p-5 rounded-2xl sm:rounded-3xl backdrop-blur-md border border-amber-500/30 shadow-[0_0_40px_rgba(245,158,11,0.2)]">
+                                <Hourglass size={32} className="text-amber-500 animate-pulse drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] sm:w-10 sm:h-10" />
                             </div>
                         </div>
                     </div>
@@ -781,7 +767,7 @@ const App = () => {
                                         >
                                             <div className="flex justify-between items-start">
                                                 <span className={`text-sm font-bold ${metTarget ? 'text-white/90' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}>{day}</span>
-                                                {metTarget && <Crown size={16} className="text-yellow-300 fill-yellow-300 drop-shadow-md animate-pulse-slow absolute top-2 right-2 sm:static" />}
+                                                {metTarget && <Crown size={16} className="text-yellow-300 fill-yellow-300 drop-shadow-md animate-pulse-slow absolute top-1 right-1 sm:static" />}
                                             </div>
                                             {hours > 0 ? (
                                                 <div>
@@ -807,14 +793,14 @@ const App = () => {
 
         {/* TIMER VIEW */}
         {activeView === 'timer' && (
-            <div className={`w-full h-full flex flex-col justify-center items-center relative transition-all duration-700 ${isZenMode ? 'scale-100' : ''}`}>
+            <div className={`w-full h-full flex flex-col justify-center items-center relative transition-all duration-700 ${isZenMode ? 'scale-100 fixed inset-0 z-[200] bg-black' : ''}`}>
                 {/* Background Deep Space Zen */}
                 <div className="absolute inset-0 bg-black">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-600/20 rounded-full blur-[150px] animate-pulse-slow"></div>
                     <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-900/30 rounded-full blur-[150px]"></div>
                 </div>
                 
-                <div className={`w-full max-w-2xl p-8 md:p-12 text-center relative z-10 transition-all duration-500`}>
+                <div className={`w-full max-w-full p-4 sm:p-8 md:p-12 text-center relative z-10 transition-all duration-500 flex flex-col items-center justify-center h-full`}>
                     
                     {!isZenMode && (
                         <div className="mb-12">
@@ -830,7 +816,7 @@ const App = () => {
                         </div>
                     )}
 
-                    <div className={`font-black font-mono text-white tracking-tighter mb-16 tabular-nums transition-all duration-700 ${isZenMode ? 'text-[6rem] sm:text-[10rem] md:text-[14rem] drop-shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'text-7xl md:text-9xl drop-shadow-2xl'}`}>
+                    <div className={`font-black font-mono text-white tracking-tighter mb-8 sm:mb-16 tabular-nums transition-all duration-700 ${isZenMode ? 'text-[15vw] sm:text-[12rem] md:text-[14rem] drop-shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'text-6xl sm:text-7xl md:text-9xl drop-shadow-2xl'}`}>
                         {formatTimer(timerSeconds)}
                     </div>
 
@@ -845,7 +831,7 @@ const App = () => {
                                 }
                                 setIsZenMode(!isZenMode);
                             }}
-                            className="absolute top-0 right-0 p-4 text-white/30 hover:text-white transition-colors z-50"
+                            className="absolute top-6 right-6 p-4 text-white/30 hover:text-white transition-colors z-50"
                         >
                             {isZenMode ? <Minimize size={24} /> : <Maximize size={24} />}
                         </button>
