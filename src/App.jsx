@@ -78,7 +78,7 @@ const appId = "my-study-tracker";
 const TARGET_HOURS = 8;
 const EXAM_DATE = new Date('2026-02-15');
 
-// Detailed Syllabus Data with WEIGHTAGE (Approximate marks)
+// Updated Syllabus Data based on GATE 2026 PDF + Restored "Other" & Streams
 const SYLLABUS_DATA = {
   DA: {
     "Probability & Statistics": {
@@ -112,6 +112,10 @@ const SYLLABUS_DATA = {
     "General Aptitude": {
         weight: 15,
         topics: ["Verbal Ability", "Quantitative Aptitude", "Analytical Aptitude", "Spatial Aptitude"]
+    },
+    "Other": {
+        weight: 0,
+        topics: ["Mock Tests", "Revision", "Miscellaneous"]
     }
   },
   CS: {
@@ -125,10 +129,66 @@ const SYLLABUS_DATA = {
     "DBMS": { weight: 8, topics: ["ER Model", "Relational Algebra", "SQL", "Normalization", "Transactions", "Concurrency"] },
     "Computer Networks": { weight: 8, topics: ["OSI/TCP-IP", "IP Addressing", "Routing", "TCP/UDP", "App Layer"] },
     "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
-    "Engineering Math": { weight: 10, topics: ["Linear Algebra", "Calculus", "Probability", "Discrete Math"] }
+    "Engineering Math": { weight: 10, topics: ["Linear Algebra", "Calculus", "Probability", "Discrete Math"] },
+    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
   },
-  // Fallback structure for other streams
-  Other: { "General Subject": { weight: 100, topics: ["Topic 1", "Topic 2"] } }
+  EC: {
+    "Networks": { weight: 10, topics: ["Nodal Analysis", "Transient Response", "Two-port networks"] },
+    "Signals & Systems": { weight: 10, topics: ["LTI Systems", "Fourier Series", "Laplace Transform", "Z-Transform"] },
+    "Electronic Devices": { weight: 10, topics: ["P-N Junction", "BJT", "MOSFET", "IC Technology"] },
+    "Analog Circuits": { weight: 10, topics: ["Diode Circuits", "Op-Amps", "Amplifiers"] },
+    "Digital Circuits": { weight: 10, topics: ["Combinational", "Sequential", "A/D & D/A Converters"] },
+    "Control Systems": { weight: 10, topics: ["Transfer Functions", "Stability", "Frequency Response"] },
+    "Communications": { weight: 10, topics: ["Analog Comm", "Digital Comm", "Information Theory"] },
+    "Electromagnetics": { weight: 10, topics: ["Maxwell Equations", "Waveguides", "Antennas"] },
+    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
+    "Engineering Math": { weight: 15, topics: ["Linear Algebra", "Calculus", "Probability"] },
+    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
+  },
+  EE: {
+    "Electric Circuits": { weight: 10, topics: ["Network Theorems", "Transient Analysis"] },
+    "Electromagnetic Fields": { weight: 10, topics: ["Coulomb's Law", "Biot-Savart Law", "Maxwell's Equations"] },
+    "Signals & Systems": { weight: 10, topics: ["LTI Systems", "Fourier Transform"] },
+    "Electrical Machines": { weight: 10, topics: ["Transformers", "DC Machines", "Induction Motors", "Synchronous Machines"] },
+    "Power Systems": { weight: 10, topics: ["Transmission Lines", "Load Flow", "Fault Analysis", "Stability"] },
+    "Control Systems": { weight: 10, topics: ["Block Diagrams", "Stability Analysis", "PID Control"] },
+    "Electrical Measurements": { weight: 10, topics: ["Bridges", "Potentiometers", "CRO"] },
+    "Analog & Digital Electronics": { weight: 10, topics: ["Op-Amps", "Logic Gates", "Microprocessors"] },
+    "Power Electronics": { weight: 10, topics: ["Rectifiers", "Inverters", "Choppers"] },
+    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
+    "Engineering Math": { weight: 15, topics: ["Linear Algebra", "Calculus", "Probability"] },
+    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
+  },
+  ME: {
+    "Engineering Mechanics": { weight: 10, topics: ["Free Body Diagrams", "Trusses", "Impulse & Momentum"] },
+    "Mechanics of Materials": { weight: 10, topics: ["Stress & Strain", "Bending", "Torsion"] },
+    "Theory of Machines": { weight: 10, topics: ["Kinematics", "Dynamics", "Vibrations"] },
+    "Fluid Mechanics": { weight: 10, topics: ["Fluid Properties", "Bernoulli's Equation", "Flow Through Pipes"] },
+    "Heat Transfer": { weight: 10, topics: ["Conduction", "Convection", "Radiation"] },
+    "Thermodynamics": { weight: 10, topics: ["Laws of Thermodynamics", "Cycles"] },
+    "Manufacturing": { weight: 10, topics: ["Casting", "Forming", "Joining", "Machining"] },
+    "Machine Design": { weight: 10, topics: ["Joints", "Gears", "Bearings"] },
+    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
+    "Engineering Math": { weight: 15, topics: ["Linear Algebra", "Calculus", "Probability"] },
+    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
+  },
+  CE: {
+    "Engineering Mechanics": { weight: 10, topics: ["System of Forces", "Friction"] },
+    "Solid Mechanics": { weight: 10, topics: ["Bending Moment", "Shear Force"] },
+    "Structural Analysis": { weight: 10, topics: ["Trusses", "Arches", "Matrix Method"] },
+    "Geotechnical Engineering": { weight: 10, topics: ["Soil Properties", "Foundation Engineering"] },
+    "Water Resources": { weight: 10, topics: ["Fluid Mechanics", "Hydrology", "Irrigation"] },
+    "Environmental Engineering": { weight: 10, topics: ["Water Quality", "Waste Water Treatment"] },
+    "Transportation Engineering": { weight: 10, topics: ["Highway Design", "Traffic Engineering"] },
+    "Geomatics": { weight: 10, topics: ["Surveying", "Photogrammetry"] },
+    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
+    "Engineering Math": { weight: 15, topics: ["Linear Algebra", "Calculus", "Probability"] },
+    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
+  },
+  Other: { 
+    "General Subject": { weight: 100, topics: ["Topic 1", "Topic 2"] },
+    "Other": { weight: 0, topics: ["Miscellaneous"] }
+  }
 };
 
 const STREAM_NAMES = {
@@ -588,7 +648,24 @@ const App = () => {
                         )}
                     </div>
 
-                    {/* 2. TODAY'S BREAKDOWN */}
+                    {/* 2. SMART INSIGHTS (NEW) */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
+                        <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BrainCircuit size={16} className="text-amber-500" /> Productivity
+                        </h3>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
+                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Peak Time</span>
+                                <span className="text-sm font-bold text-zinc-800 dark:text-white capitalize">{stats.peakTime || '-'}</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
+                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
+                                <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. TODAY'S BREAKDOWN */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
                         <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">Studied Today</h3>
                         <div className="space-y-3">
@@ -605,23 +682,6 @@ const App = () => {
                             ) : (
                                 <p className="text-xs text-zinc-400 italic">No sessions logged yet.</p>
                             )}
-                        </div>
-                    </div>
-
-                    {/* 3. SMART INSIGHTS */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
-                        <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <BrainCircuit size={16} className="text-amber-500" /> Productivity
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Peak Time</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white capitalize">{stats.peakTime || '-'}</span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
-                            </div>
                         </div>
                     </div>
 
@@ -674,7 +734,21 @@ const App = () => {
                         </p>
                     </div>
 
-                    {/* 6. WEEKLY CHART */}
+                    {/* 6. MINI STATS */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
+                            <Clock size={20} className="text-blue-500 mb-3" />
+                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.monthlyTotal}h</div>
+                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Total Hours</div>
+                        </div>
+                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
+                            <Target size={20} className="text-purple-500 mb-3" />
+                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.completionRate}%</div>
+                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Completion</div>
+                        </div>
+                    </div>
+
+                    {/* 7. WEEKLY CHART */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-2">
@@ -707,9 +781,9 @@ const App = () => {
                     {/* Countdown Card */}
                     <div className="bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full -mr-20 -mt-20 blur-[80px] animate-pulse-slow"></div>
-                        <div className="relative z-10 flex flex-row items-center justify-between gap-4">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="text-center sm:text-left w-full sm:w-auto">
+                                <div className="flex items-center justify-center sm:justify-start gap-2 mb-1 sm:mb-2">
                                     <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-zinc-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-widest border border-zinc-200 dark:border-white/10">Exam Date</span>
                                     <span className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">Feb 15, 2026</span>
                                 </div>
@@ -793,14 +867,14 @@ const App = () => {
 
         {/* TIMER VIEW */}
         {activeView === 'timer' && (
-            <div className={`w-full h-full flex flex-col justify-center items-center relative transition-all duration-700 ${isZenMode ? 'scale-100 fixed inset-0 z-[200] bg-black' : ''}`}>
+            <div className={`w-full h-full flex flex-col justify-center items-center relative transition-all duration-700 ${isZenMode ? 'scale-100' : ''}`}>
                 {/* Background Deep Space Zen */}
                 <div className="absolute inset-0 bg-black">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-600/20 rounded-full blur-[150px] animate-pulse-slow"></div>
                     <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-900/30 rounded-full blur-[150px]"></div>
                 </div>
                 
-                <div className={`w-full max-w-full p-4 sm:p-8 md:p-12 text-center relative z-10 transition-all duration-500 flex flex-col items-center justify-center h-full`}>
+                <div className={`w-full max-w-2xl p-8 md:p-12 text-center relative z-10 transition-all duration-500`}>
                     
                     {!isZenMode && (
                         <div className="mb-12">
@@ -816,7 +890,7 @@ const App = () => {
                         </div>
                     )}
 
-                    <div className={`font-black font-mono text-white tracking-tighter mb-8 sm:mb-16 tabular-nums transition-all duration-700 ${isZenMode ? 'text-[15vw] sm:text-[12rem] md:text-[14rem] drop-shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'text-6xl sm:text-7xl md:text-9xl drop-shadow-2xl'}`}>
+                    <div className={`font-black font-mono text-white tracking-tighter mb-16 tabular-nums transition-all duration-700 ${isZenMode ? 'text-[6rem] sm:text-[10rem] md:text-[14rem] drop-shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'text-7xl md:text-9xl drop-shadow-2xl'}`}>
                         {formatTimer(timerSeconds)}
                     </div>
 
@@ -831,7 +905,7 @@ const App = () => {
                                 }
                                 setIsZenMode(!isZenMode);
                             }}
-                            className="absolute top-6 right-6 p-4 text-white/30 hover:text-white transition-colors z-50"
+                            className="absolute top-0 right-0 p-4 text-white/30 hover:text-white transition-colors z-50"
                         >
                             {isZenMode ? <Minimize size={24} /> : <Maximize size={24} />}
                         </button>
