@@ -78,7 +78,7 @@ const appId = "my-study-tracker";
 const TARGET_HOURS = 8;
 const EXAM_DATE = new Date('2026-02-15');
 
-// Updated Syllabus Data based on GATE 2026 PDF + Restored "Other" & Streams
+// Syllabus Data
 const SYLLABUS_DATA = {
   DA: {
     "Probability & Statistics": {
@@ -112,10 +112,6 @@ const SYLLABUS_DATA = {
     "General Aptitude": {
         weight: 15,
         topics: ["Verbal Ability", "Quantitative Aptitude", "Analytical Aptitude", "Spatial Aptitude"]
-    },
-    "Other": {
-        weight: 0,
-        topics: ["Mock Tests", "Revision", "Miscellaneous"]
     }
   },
   CS: {
@@ -129,66 +125,10 @@ const SYLLABUS_DATA = {
     "DBMS": { weight: 8, topics: ["ER Model", "Relational Algebra", "SQL", "Normalization", "Transactions", "Concurrency"] },
     "Computer Networks": { weight: 8, topics: ["OSI/TCP-IP", "IP Addressing", "Routing", "TCP/UDP", "App Layer"] },
     "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
-    "Engineering Math": { weight: 10, topics: ["Linear Algebra", "Calculus", "Probability", "Discrete Math"] },
-    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
+    "Engineering Math": { weight: 10, topics: ["Linear Algebra", "Calculus", "Probability", "Discrete Math"] }
   },
-  EC: {
-    "Networks": { weight: 10, topics: ["Nodal Analysis", "Transient Response", "Two-port networks"] },
-    "Signals & Systems": { weight: 10, topics: ["LTI Systems", "Fourier Series", "Laplace Transform", "Z-Transform"] },
-    "Electronic Devices": { weight: 10, topics: ["P-N Junction", "BJT", "MOSFET", "IC Technology"] },
-    "Analog Circuits": { weight: 10, topics: ["Diode Circuits", "Op-Amps", "Amplifiers"] },
-    "Digital Circuits": { weight: 10, topics: ["Combinational", "Sequential", "A/D & D/A Converters"] },
-    "Control Systems": { weight: 10, topics: ["Transfer Functions", "Stability", "Frequency Response"] },
-    "Communications": { weight: 10, topics: ["Analog Comm", "Digital Comm", "Information Theory"] },
-    "Electromagnetics": { weight: 10, topics: ["Maxwell Equations", "Waveguides", "Antennas"] },
-    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
-    "Engineering Math": { weight: 15, topics: ["Linear Algebra", "Calculus", "Probability"] },
-    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
-  },
-  EE: {
-    "Electric Circuits": { weight: 10, topics: ["Network Theorems", "Transient Analysis"] },
-    "Electromagnetic Fields": { weight: 10, topics: ["Coulomb's Law", "Biot-Savart Law", "Maxwell's Equations"] },
-    "Signals & Systems": { weight: 10, topics: ["LTI Systems", "Fourier Transform"] },
-    "Electrical Machines": { weight: 10, topics: ["Transformers", "DC Machines", "Induction Motors", "Synchronous Machines"] },
-    "Power Systems": { weight: 10, topics: ["Transmission Lines", "Load Flow", "Fault Analysis", "Stability"] },
-    "Control Systems": { weight: 10, topics: ["Block Diagrams", "Stability Analysis", "PID Control"] },
-    "Electrical Measurements": { weight: 10, topics: ["Bridges", "Potentiometers", "CRO"] },
-    "Analog & Digital Electronics": { weight: 10, topics: ["Op-Amps", "Logic Gates", "Microprocessors"] },
-    "Power Electronics": { weight: 10, topics: ["Rectifiers", "Inverters", "Choppers"] },
-    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
-    "Engineering Math": { weight: 15, topics: ["Linear Algebra", "Calculus", "Probability"] },
-    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
-  },
-  ME: {
-    "Engineering Mechanics": { weight: 10, topics: ["Free Body Diagrams", "Trusses", "Impulse & Momentum"] },
-    "Mechanics of Materials": { weight: 10, topics: ["Stress & Strain", "Bending", "Torsion"] },
-    "Theory of Machines": { weight: 10, topics: ["Kinematics", "Dynamics", "Vibrations"] },
-    "Fluid Mechanics": { weight: 10, topics: ["Fluid Properties", "Bernoulli's Equation", "Flow Through Pipes"] },
-    "Heat Transfer": { weight: 10, topics: ["Conduction", "Convection", "Radiation"] },
-    "Thermodynamics": { weight: 10, topics: ["Laws of Thermodynamics", "Cycles"] },
-    "Manufacturing": { weight: 10, topics: ["Casting", "Forming", "Joining", "Machining"] },
-    "Machine Design": { weight: 10, topics: ["Joints", "Gears", "Bearings"] },
-    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
-    "Engineering Math": { weight: 15, topics: ["Linear Algebra", "Calculus", "Probability"] },
-    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
-  },
-  CE: {
-    "Engineering Mechanics": { weight: 10, topics: ["System of Forces", "Friction"] },
-    "Solid Mechanics": { weight: 10, topics: ["Bending Moment", "Shear Force"] },
-    "Structural Analysis": { weight: 10, topics: ["Trusses", "Arches", "Matrix Method"] },
-    "Geotechnical Engineering": { weight: 10, topics: ["Soil Properties", "Foundation Engineering"] },
-    "Water Resources": { weight: 10, topics: ["Fluid Mechanics", "Hydrology", "Irrigation"] },
-    "Environmental Engineering": { weight: 10, topics: ["Water Quality", "Waste Water Treatment"] },
-    "Transportation Engineering": { weight: 10, topics: ["Highway Design", "Traffic Engineering"] },
-    "Geomatics": { weight: 10, topics: ["Surveying", "Photogrammetry"] },
-    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
-    "Engineering Math": { weight: 15, topics: ["Linear Algebra", "Calculus", "Probability"] },
-    "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
-  },
-  Other: { 
-    "General Subject": { weight: 100, topics: ["Topic 1", "Topic 2"] },
-    "Other": { weight: 0, topics: ["Miscellaneous"] }
-  }
+  // Fallback structure for other streams
+  Other: { "General Subject": { weight: 100, topics: ["Topic 1", "Topic 2"] } }
 };
 
 const STREAM_NAMES = {
@@ -427,6 +367,14 @@ const App = () => {
     } catch (err) { console.error(err); }
   };
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(e => console.log(e));
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+    }
+  };
+
   // --- Analytics ---
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -615,14 +563,28 @@ const App = () => {
         </nav>
       )}
 
-      <main className={`max-w-6xl mx-auto p-4 sm:p-6 ${isTimerRunning && isZenMode ? 'h-screen fixed inset-0 z-[100] bg-black flex items-center justify-center p-0 m-0 max-w-none' : ''}`}>
+      <main className={`max-w-6xl mx-auto p-4 sm:p-6 ${isTimerRunning && isZenMode ? 'h-[100dvh] fixed inset-0 z-[100] bg-black flex items-center justify-center p-0 m-0 max-w-none w-full' : ''}`}>
         {activeView === 'dashboard' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Left Column */}
                 <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-28 lg:h-fit order-2 lg:order-1">
                     
-                    {/* 1. HOURS LEFT TODAY */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden group">
+                    {/* 1. MOBILE HEADS-UP DISPLAY (Split Header) */}
+                    <div className="grid grid-cols-2 gap-4 md:hidden">
+                         {/* Countdown (Mobile) */}
+                         <div className="bg-gradient-to-br from-amber-500/20 to-amber-600/20 backdrop-blur-xl p-4 rounded-2xl border border-amber-500/20 shadow-sm">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Days Left</p>
+                            <div className="text-3xl font-black text-white">{stats.daysRemaining}</div>
+                         </div>
+                         {/* Target (Mobile) */}
+                         <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-4 rounded-2xl border border-zinc-200 dark:border-white/10 shadow-sm">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Target Left</p>
+                            <div className="text-3xl font-black text-white">{Math.max(0, userSettings.dailyTarget - stats.todayHours).toFixed(1)}<span className="text-sm font-medium text-zinc-500">h</span></div>
+                         </div>
+                    </div>
+
+                    {/* 2. DAILY TARGET (Desktop Only) */}
+                    <div className="hidden md:block bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden group">
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Daily Target</h3>
                             <Target size={18} className="text-amber-500" />
@@ -648,24 +610,7 @@ const App = () => {
                         )}
                     </div>
 
-                    {/* 2. SMART INSIGHTS (NEW) */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
-                        <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <BrainCircuit size={16} className="text-amber-500" /> Productivity
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Peak Time</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white capitalize">{stats.peakTime || '-'}</span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 3. TODAY'S BREAKDOWN */}
+                    {/* 3. TODAY'S BREAKDOWN (Moved Up) */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
                         <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">Studied Today</h3>
                         <div className="space-y-3">
@@ -699,56 +644,24 @@ const App = () => {
                         </div>
                     </div>
 
-                    {/* 5. SYLLABUS STATUS */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden">
-                        <div className="flex items-center justify-between mb-4 relative z-10">
-                            <div>
-                                <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Syllabus Status</h3>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">{stats.syllabusCompletion}%</span>
-                                    <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Completed</span>
-                                </div>
+                    {/* 5. SMART INSIGHTS */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
+                        <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BrainCircuit size={16} className="text-amber-500" /> Productivity
+                        </h3>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
+                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Peak Time</span>
+                                <span className="text-sm font-bold text-zinc-800 dark:text-white capitalize">{stats.peakTime || '-'}</span>
                             </div>
-                            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-lg">
-                                <BookOpen size={20} className="text-emerald-600 dark:text-emerald-400" />
+                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
+                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
+                                <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
                             </div>
-                        </div>
-                        
-                        {/* Animated Progress Bar */}
-                        <div className="relative w-full h-4 bg-zinc-100 dark:bg-white/5 rounded-full overflow-hidden">
-                            {/* Background Pulse */}
-                            <div className="absolute inset-0 bg-emerald-500/10 animate-pulse"></div>
-                            {/* Active Bar */}
-                            <div 
-                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(16,185,129,0.4)]"
-                                style={{ width: `${stats.syllabusCompletion}%` }}
-                            >
-                                {/* Glare Effect */}
-                                <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/50 blur-[1px]"></div>
-                            </div>
-                        </div>
-                        
-                        <p className="text-xs text-zinc-400 mt-3 font-medium flex items-center gap-1">
-                            <Zap size={12} className="text-amber-500" fill="currentColor" />
-                            <span>{stats.totalRevisions} total topic revisions recorded</span>
-                        </p>
-                    </div>
-
-                    {/* 6. MINI STATS */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
-                            <Clock size={20} className="text-blue-500 mb-3" />
-                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.monthlyTotal}h</div>
-                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Total Hours</div>
-                        </div>
-                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
-                            <Target size={20} className="text-purple-500 mb-3" />
-                            <div className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.completionRate}%</div>
-                            <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Completion</div>
                         </div>
                     </div>
 
-                    {/* 7. WEEKLY CHART */}
+                    {/* 6. WEEKLY CHART */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-2">
@@ -776,14 +689,14 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Right Column: Calendar */}
+                {/* Right Column: Calendar (Order 1 on Mobile) */}
                 <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
-                    {/* Countdown Card */}
-                    <div className="bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
+                    {/* Countdown Card (Desktop Only - Hidden on Mobile to save space) */}
+                    <div className="hidden md:block bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full -mr-20 -mt-20 blur-[80px] animate-pulse-slow"></div>
-                        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="text-center sm:text-left w-full sm:w-auto">
-                                <div className="flex items-center justify-center sm:justify-start gap-2 mb-1 sm:mb-2">
+                        <div className="relative z-10 flex flex-row items-center justify-between gap-4">
+                            <div className="text-left">
+                                <div className="flex items-center justify-start gap-2 mb-1 sm:mb-2">
                                     <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-zinc-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-widest border border-zinc-200 dark:border-white/10">Exam Date</span>
                                     <span className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">Feb 15, 2026</span>
                                 </div>
@@ -874,10 +787,10 @@ const App = () => {
                     <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-900/30 rounded-full blur-[150px]"></div>
                 </div>
                 
-                <div className={`w-full max-w-2xl p-8 md:p-12 text-center relative z-10 transition-all duration-500`}>
+                <div className={`w-full max-w-2xl p-8 md:p-12 text-center relative z-10 transition-all duration-500 flex flex-col items-center justify-center h-full`}>
                     
                     {!isZenMode && (
-                        <div className="mb-12">
+                        <div className="mb-12 w-full flex flex-col items-center">
                             <label className="text-xs font-bold text-amber-500/80 uppercase tracking-[0.2em] mb-4 block">Focus Session</label>
                             <div className="relative inline-block w-full max-w-sm">
                                 <CustomSelect 
@@ -890,22 +803,15 @@ const App = () => {
                         </div>
                     )}
 
-                    <div className={`font-black font-mono text-white tracking-tighter mb-16 tabular-nums transition-all duration-700 ${isZenMode ? 'text-[6rem] sm:text-[10rem] md:text-[14rem] drop-shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'text-7xl md:text-9xl drop-shadow-2xl'}`}>
+                    <div className={`font-black font-mono text-white tracking-tighter mb-8 sm:mb-16 tabular-nums transition-all duration-700 ${isZenMode ? 'text-[15vw] sm:text-[12rem] md:text-[14rem] drop-shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'text-6xl sm:text-7xl md:text-9xl drop-shadow-2xl'}`}>
                         {formatTimer(timerSeconds)}
                     </div>
 
                     {/* Zen Mode Toggle */}
                     {isTimerRunning && (
                         <button 
-                            onClick={() => {
-                                if(!isZenMode) {
-                                    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-                                } else {
-                                    if(document.exitFullscreen) document.exitFullscreen();
-                                }
-                                setIsZenMode(!isZenMode);
-                            }}
-                            className="absolute top-0 right-0 p-4 text-white/30 hover:text-white transition-colors z-50"
+                            onClick={toggleFullscreen}
+                            className="absolute top-6 right-6 p-4 text-white/30 hover:text-white transition-colors z-50"
                         >
                             {isZenMode ? <Minimize size={24} /> : <Maximize size={24} />}
                         </button>
