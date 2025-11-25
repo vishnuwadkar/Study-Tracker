@@ -112,7 +112,8 @@ const SYLLABUS_DATA = {
     "General Aptitude": {
         weight: 15,
         topics: ["Verbal Ability", "Quantitative Aptitude", "Analytical Aptitude", "Spatial Aptitude"]
-    }
+    },
+    "Other":{}
   },
   CS: {
     "Digital Logic": { weight: 5, topics: ["Boolean Algebra", "Combinational Circuits", "Sequential Circuits", "Number Rep", "Computer Arithmetic"] },
