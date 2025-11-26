@@ -789,7 +789,7 @@ const App = () => {
                 <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
                     {/* Countdown Card - Responsive Layout Fix */}
                     <div className="bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full -mr-20 -mt-20 blur-[80px] animate-pulse-slow"></div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full -mr-20 -mt-20 blur-[70px] animate-pulse-fast"></div>
                         <div className="relative z-10 flex flex-row items-center justify-between gap-4"> {/* Forced row layout for mobile */}
                             <div className="text-left">
                                 <div className="flex items-center justify-start gap-2 mb-1">
@@ -800,8 +800,8 @@ const App = () => {
                                     {stats.daysRemaining} <span className="text-lg sm:text-2xl md:text-3xl font-medium text-zinc-500">days</span>
                                 </h3>
                             </div>
-                            <div className="bg-amber-500/10 p-3 sm:p-5 rounded-xl sm:rounded-3xl backdrop-blur-md border border-amber-500/30 shadow-[0_0_40px_rgba(245,158,11,0.2)] flex-shrink-0">
-                                <Hourglass className="text-amber-500 animate-pulse drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] w-6 h-6 sm:w-10 sm:h-10" />
+                            <div className="bg-amber-250/10 p-3 sm:p-5 rounded-xl sm:rounded-3xl backdrop-blur-md border border-amber-500/30 shadow-[0_0_40px_rgba(245,158,11,0.2)] flex-shrink-0">
+                                <Hourglass className="text-amber-200 animate-pulse drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] w-6 h-6 sm:w-10 sm:h-10" />
                             </div>
                         </div>
                     </div>
