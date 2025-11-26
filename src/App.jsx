@@ -652,20 +652,16 @@ const App = () => {
                             </div>
                         )}
                     </div>
-
-                    {/* 2. SMART INSIGHTS */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
-                        <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <BrainCircuit size={16} className="text-amber-500" /> Productivity
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Peak Time</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white capitalize">{stats.peakTime || '-'}</span>
+                    {/* 4. STREAK CARD */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 dark:bg-amber-500/10 rounded-full -mr-10 -mt-10 blur-3xl animate-pulse-slow"></div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2">
+                                <Zap size={18} fill="currentColor" className={stats.streak > 0 ? "animate-pulse" : ""} />
+                                <span className="text-xs font-bold uppercase tracking-wider">Current Streak</span>
                             </div>
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
+                            <div className="text-5xl font-black text-zinc-900 dark:text-white tracking-tight">
+                                {stats.streak}<span className="text-lg text-zinc-400 dark:text-zinc-500 font-medium ml-1">days</span>
                             </div>
                         </div>
                     </div>
@@ -687,20 +683,6 @@ const App = () => {
                             ) : (
                                 <p className="text-xs text-zinc-400 italic">No sessions logged yet.</p>
                             )}
-                        </div>
-                    </div>
-
-                    {/* 4. STREAK CARD */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 dark:bg-amber-500/10 rounded-full -mr-10 -mt-10 blur-3xl animate-pulse-slow"></div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2">
-                                <Zap size={18} fill="currentColor" className={stats.streak > 0 ? "animate-pulse" : ""} />
-                                <span className="text-xs font-bold uppercase tracking-wider">Current Streak</span>
-                            </div>
-                            <div className="text-5xl font-black text-zinc-900 dark:text-white tracking-tight">
-                                {stats.streak}<span className="text-lg text-zinc-400 dark:text-zinc-500 font-medium ml-1">days</span>
-                            </div>
                         </div>
                     </div>
 
@@ -767,13 +749,30 @@ const App = () => {
                             ))}
                         </div>
                     </div>
+                    {/* 2. SMART INSIGHTS */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
+                        <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <BrainCircuit size={16} className="text-amber-500" /> Productivity
+                        </h3>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
+                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Peak Time</span>
+                                <span className="text-sm font-bold text-zinc-800 dark:text-white capitalize">{stats.peakTime || '-'}</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
+                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
+                                <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
 
                 {/* Right Column: Calendar */}
                 <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
                     {/* Countdown Card */}
                     <div className="bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-6 sm:p-8 rounded-[2rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full -mr-20 -mt-20 blur-[80px] animate-pulse-slow"></div>
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full -mr-20 -mt-20 blur-[70px] animate-pulse-slow"></div>
                         <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="text-center sm:text-left w-full sm:w-auto">
                                 <div className="flex items-center justify-center sm:justify-start gap-2 mb-1 sm:mb-2">
@@ -785,7 +784,7 @@ const App = () => {
                                 </h3>
                             </div>
                             <div className="bg-amber-500/10 p-3 sm:p-5 rounded-2xl sm:rounded-3xl backdrop-blur-md border border-amber-500/30 shadow-[0_0_40px_rgba(245,158,11,0.2)]">
-                                <Hourglass size={32} className="text-amber-500 animate-pulse drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] sm:w-10 sm:h-10" />
+                                <Hourglass size={32} className="text-amber-100 animate-pulse drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] sm:w-10 sm:h-10" />
                             </div>
                         </div>
                     </div>
