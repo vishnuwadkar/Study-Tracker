@@ -82,7 +82,7 @@ const EXAM_DATE = new Date('2026-02-15');
 const SYLLABUS_DATA = {
   DA: {
     "Probability & Statistics": {
-        weight: 17,
+        weight: 15,
         topics: [
             "Counting (permutation and combinations)", "Probability axioms", "Sample space & events", 
             "Independent & mutually exclusive events", "Marginal, conditional and joint probability", "Bayes Theorem", 
@@ -95,7 +95,7 @@ const SYLLABUS_DATA = {
         ]
     },
     "Linear Algebra": {
-        weight: 11,
+        weight: 10,
         topics: [
             "Vector space, subspaces", "Linear dependence and independence", "Matrices & Projection matrix", 
             "Orthogonal matrix, Idempotent matrix", "Partition matrix and their properties", "Quadratic forms", 
@@ -104,14 +104,14 @@ const SYLLABUS_DATA = {
         ]
     },
     "Calculus & Optimization": {
-        weight: 8,
+        weight: 10,
         topics: [
             "Functions of a single variable", "Limit, continuity and differentiability", "Taylor series", 
             "Maxima and minima", "Optimization involving a single variable"
         ]
     },
     "Programming, DS & Algo": {
-        weight: 17,
+        weight: 12,
         topics: [
             "Programming in Python", "Stacks, queues, linked lists", "Trees, hash tables", 
             "Linear search and binary search", "Selection sort, bubble sort and insertion sort", 
@@ -119,7 +119,7 @@ const SYLLABUS_DATA = {
         ]
     },
     "Database Mgmt & Warehousing": {
-        weight: 8,
+        weight: 10,
         topics: [
             "ER-model, Relational model", "Relational algebra, tuple calculus", "SQL, integrity constraints", 
             "Normal form", "File organization, indexing", "Data types", "Data transformation (normalization, discretization, sampling)", 
@@ -137,7 +137,7 @@ const SYLLABUS_DATA = {
         ]
     },
     "Artificial Intelligence": {
-        weight: 8,
+        weight: 10,
         topics: [
             "Search: informed, uninformed, adversarial", "Logic, propositional, predicate", 
             "Reasoning under uncertainty", "Conditional independence representation", 
@@ -344,23 +344,17 @@ const App = () => {
     setIsTimerRunning(true); requestWakeLock();
   };
   const handlePauseTimer = () => { setIsTimerRunning(false); releaseWakeLock(); };
-  
   const handleTimerFinish = () => {
     setIsTimerRunning(false); setIsZenMode(false); releaseWakeLock();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     const h = Math.floor(timerSeconds / 3600); const m = Math.round((timerSeconds % 3600) / 60);
     const today = new Date(); const dateKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
     setSelectedDate(dateKey); setInputHours(h.toString()); setInputMinutes(m.toString()); setInputSubject(timerSubject);
-    
-    // Format Time String for Note Pre-fill
     const timeStr = sessionStartTime ? formatTimeOnly(sessionStartTime) : formatTimeOnly(new Date().toISOString());
     setInputNotes(`Started at ${timeStr} via Focus Timer`);
-    
-    setTimerSeconds(0); setStartTime(null);
-    localStorage.removeItem('timerStart'); localStorage.removeItem('isTimerRunning');
-    // NOTE: We do NOT clear sessionStartTime here, we need it for saving!
-    
-    setIsModalOpen(true); setModalMode('add'); setActiveView('dashboard'); 
+    setTimerSeconds(0); setStartTime(null); setSessionStartTime(null);
+    localStorage.removeItem('timerStart'); localStorage.removeItem('isTimerRunning'); localStorage.removeItem('sessionStartTime');
+    setIsModalOpen(true); setActiveView('dashboard'); setModalMode('add');
   };
   const handleGoogleLogin = async () => { const provider = new GoogleAuthProvider(); try { await signInWithPopup(auth, provider); } catch (error) { alert(error.message); } };
   const handleLogout = async () => { try { await signOut(auth); setEntries({}); setSyllabusProgress({}); setIsSettingsOpen(false); } catch (error) { console.error(error); } };
@@ -398,17 +392,13 @@ const App = () => {
         const currentEntry = entries[selectedDate] || {};
         let sessions = currentEntry.sessions || [];
         if (!currentEntry.sessions && currentEntry.hours) { sessions = [{ id: 'legacy', subject: currentEntry.subject || 'Other', hours: currentEntry.hours, notes: currentEntry.notes || '' }]; }
-        
-        // Use sessionStartTime if it exists (from timer), otherwise use current time
         let timeLog = sessionStartTime || new Date().toISOString(); 
-        
         const newSession = { id: Date.now().toString(), subject: inputSubject, hours: sessionHours, notes: inputNotes, timestamp: timeLog };
         const updatedSessions = [...sessions, newSession];
         updatedSessions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         const newTotalHours = updatedSessions.reduce((sum, s) => sum + s.hours, 0);
         await setDoc(docRef, { hours: newTotalHours, sessions: updatedSessions, updatedAt: new Date().toISOString() });
       }
-      // Reset
       setInputHours(''); setInputMinutes(''); setInputNotes(''); 
       setSessionStartTime(null); localStorage.removeItem('sessionStartTime');
       setIsLoading(false); setModalMode('view');
@@ -517,6 +507,12 @@ const App = () => {
     // Weighted Syllabus
     let totalWeightedScore = 0; let achievedWeightedScore = 0; let totalRevisions = 0;
     const streamData = SYLLABUS_DATA[userSettings.stream] || {};
+    const allSubjectTotals = {}; // Accumulate totals for syllabus view
+
+    // We must iterate through LOGGED hours to calculate subject progress properly if needed? 
+    // Actually, the prompt requested "Hours spent on each subject in front of each subject".
+    // We already have `subjectTotals` from above.
+    
     Object.entries(streamData).forEach(([subject, data]) => {
         const weight = data.weight || 0; const topics = data.topics || [];
         const topicWeight = weight / (topics.length || 1);
@@ -529,7 +525,7 @@ const App = () => {
     });
     const syllabusCompletion = totalWeightedScore > 0 ? Math.round((achievedWeightedScore / totalWeightedScore) * 100) : 0;
 
-    return { monthlyTotal: parseFloat(monthlyTotal.toFixed(1)), avgDaily: daysStudied > 0 ? parseFloat((monthlyTotal / daysStudied).toFixed(1)) : 0, completionRate: daysInMonth > 0 ? Math.round((daysTargetMet / new Date().getDate()) * 100) : 0, streak, weeklyData, last7DaysTotal: parseFloat(last7DaysTotal.toFixed(1)), sortedSubjects, daysRemaining, syllabusCompletion, totalRevisions, todayHours, todayBreakdown, peakTime, bestSubject };
+    return { monthlyTotal: parseFloat(monthlyTotal.toFixed(1)), avgDaily: daysStudied > 0 ? parseFloat((monthlyTotal / daysStudied).toFixed(1)) : 0, completionRate: daysInMonth > 0 ? Math.round((daysTargetMet / new Date().getDate()) * 100) : 0, streak, weeklyData, last7DaysTotal: parseFloat(last7DaysTotal.toFixed(1)), sortedSubjects, daysRemaining, syllabusCompletion, totalRevisions, todayHours, todayBreakdown, peakTime, bestSubject, subjectTotals };
   }, [entries, year, month, daysInMonth, userSettings, syllabusProgress]);
 
   const getCellColor = (hours) => {
@@ -966,6 +962,7 @@ const App = () => {
                                             <div className="flex items-center gap-2">
                                                 <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{subject}</h3>
                                                 <span className="text-xs font-bold px-2 py-0.5 rounded bg-zinc-100 dark:bg-white/10 text-zinc-500 dark:text-zinc-400">Weight: {weight}%</span>
+                                                <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-2">{stats.subjectTotals[subject] ? formatDuration(stats.subjectTotals[subject]) : '0m'} spent</span>
                                             </div>
                                             <span className="text-xs font-mono text-zinc-400 dark:text-zinc-500">{percent}% Done</span>
                                         </div>
