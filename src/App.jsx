@@ -82,7 +82,7 @@ const EXAM_DATE = new Date('2026-02-15');
 const SYLLABUS_DATA = {
   DA: {
     "Probability & Statistics": {
-        weight: 15,
+        weight: 17,
         topics: [
             "Counting (permutation and combinations)", "Probability axioms", "Sample space & events", 
             "Independent & mutually exclusive events", "Marginal, conditional and joint probability", "Bayes Theorem", 
@@ -95,7 +95,7 @@ const SYLLABUS_DATA = {
         ]
     },
     "Linear Algebra": {
-        weight: 10,
+        weight: 11,
         topics: [
             "Vector space, subspaces", "Linear dependence and independence", "Matrices & Projection matrix", 
             "Orthogonal matrix, Idempotent matrix", "Partition matrix and their properties", "Quadratic forms", 
@@ -104,14 +104,14 @@ const SYLLABUS_DATA = {
         ]
     },
     "Calculus & Optimization": {
-        weight: 10,
+        weight: 8.5,
         topics: [
             "Functions of a single variable", "Limit, continuity and differentiability", "Taylor series", 
             "Maxima and minima", "Optimization involving a single variable"
         ]
     },
     "Programming, DS & Algo": {
-        weight: 12,
+        weight: 17,
         topics: [
             "Programming in Python", "Stacks, queues, linked lists", "Trees, hash tables", 
             "Linear search and binary search", "Selection sort, bubble sort and insertion sort", 
@@ -119,7 +119,7 @@ const SYLLABUS_DATA = {
         ]
     },
     "Database Mgmt & Warehousing": {
-        weight: 10,
+        weight: 8.5,
         topics: [
             "ER-model, Relational model", "Relational algebra, tuple calculus", "SQL, integrity constraints", 
             "Normal form", "File organization, indexing", "Data types", "Data transformation (normalization, discretization, sampling)", 
@@ -137,7 +137,7 @@ const SYLLABUS_DATA = {
         ]
     },
     "Artificial Intelligence": {
-        weight: 10,
+        weight: 8.5,
         topics: [
             "Search: informed, uninformed, adversarial", "Logic, propositional, predicate", 
             "Reasoning under uncertainty", "Conditional independence representation", 
