@@ -38,7 +38,8 @@ import {
   RefreshCw,
   User,
   BrainCircuit,
-  Plus
+  Plus,
+  Youtube
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -57,6 +58,7 @@ import {
   deleteDoc,
   getDoc
 } from 'firebase/firestore';
+import Videos from './components/Videos';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAlQ7X1FIISCl8mRYnxdMXUXNmaDPnxQZA",
@@ -242,7 +244,7 @@ const App = () => {
   const [entries, setEntries] = useState({}); 
   const [syllabusProgress, setSyllabusProgress] = useState({});
   const [activeView, setActiveView] = useState('dashboard'); 
-  const [userSettings, setUserSettings] = useState({ stream: 'DA', dailyTarget: 8, displayName: '' });
+  const [userSettings, setUserSettings] = useState({ stream: 'DA', dailyTarget: 8, displayName: '', youtubeApiKey: '' });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('view'); // 'view' | 'add'
@@ -616,6 +618,9 @@ const App = () => {
 
                 {/* Center */}
                 <div className="flex gap-1 bg-zinc-100 dark:bg-zinc-900/80 p-1 rounded-xl border border-zinc-200 dark:border-white/10">
+                    <button onClick={() => setActiveView('videos')} className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'videos' ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'}`}>
+                        <Youtube size={14} /> <span className="hidden sm:inline">Videos</span>
+                    </button>
                     <button onClick={() => setActiveView('dashboard')} className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${activeView === 'dashboard' ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'}`}>
                         <LayoutDashboard size={14} /> <span className="hidden sm:inline">Tracker</span>
                     </button>
@@ -638,7 +643,9 @@ const App = () => {
       )}
 
       <main className={`max-w-6xl mx-auto p-4 sm:p-6 ${isTimerRunning && isZenMode ? 'h-[100dvh] w-[100vw] fixed inset-0 z-[9999] bg-black flex items-center justify-center p-0 m-0 max-w-none overflow-hidden' : ''}`}>
-        {activeView === 'dashboard' && (
+        
+        {/* VIEW: DASHBOARD */}
+        <div style={{ display: activeView === 'dashboard' ? 'block' : 'none' }}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Left Column */}
                 <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-28 lg:h-fit order-2 lg:order-1">
@@ -872,8 +879,14 @@ const App = () => {
                     </div>
                 </div>
             </div>
-        )}
-        {/* TIMER VIEW - Responsive Text Fix */}
+        </div>
+
+        {/* VIEW: VIDEOS (Always Mounted to Prevent Iframe Refresh) */}
+        <div style={{ display: activeView === 'videos' ? 'block' : 'none', height: '100%' }}>
+            <Videos db={db} user={user} appId={appId} />
+        </div>
+        
+        {/* VIEW: TIMER */}
         {activeView === 'timer' && (
             <div className={`w-full h-full flex flex-col justify-center items-center relative transition-all duration-700 ${isZenMode ? 'scale-100 fixed inset-0 z-[200] bg-black' : ''}`}>
                 {/* Background Deep Space Zen */}
@@ -942,8 +955,8 @@ const App = () => {
             </div>
         )}
 
-        {activeView === 'syllabus' && (
-            /* SYLLABUS VIEW */
+        {/* VIEW: SYLLABUS */}
+        <div style={{ display: activeView === 'syllabus' ? 'block' : 'none' }}>
             <div className="max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div>
@@ -1026,7 +1039,7 @@ const App = () => {
                     })}
                 </div>
             </div>
-        )}
+        </div>
       </main>
 
       {/* Footer (Hidden in Zen Mode) */}
