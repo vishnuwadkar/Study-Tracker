@@ -38,10 +38,12 @@ const Videos = ({ db, user, appId }) => {
     const unsubPlaylists = onSnapshot(videoCollectionRef, (snapshot) => {
         const playlistsData = snapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
-            // Filter out any invalid/empty playlists (ghost data)
+            // FILTER: Remove any "ghost" playlists that don't have a valid listId or Name
             .filter(p => p.listId && p.name);
             
         setPlaylists(playlistsData);
+    }, (error) => {
+        console.error("Error fetching playlists:", error);
     });
     
     return () => {
@@ -54,7 +56,7 @@ const Videos = ({ db, user, appId }) => {
       if (selectedPlaylist) {
           setPlaylistNotes(selectedPlaylist.notes || '');
       }
-  }, [selectedPlaylistId]); 
+  }, [selectedPlaylistId, selectedPlaylist]); 
 
   // --- Helpers ---
   const getYouTubeListId = (url) => {
@@ -86,14 +88,13 @@ const Videos = ({ db, user, appId }) => {
       
       try {
         if(videoCollectionRef) {
-            // Using setDoc with listId as key ensures no duplicates for same playlist
             await setDoc(doc(videoCollectionRef, playlistId), newPlaylist);
+            
+            // Clear form explicitly after success
+            setNewPlaylistUrl('');
+            setNewPlaylistName('');
+            setNewPlaylistTotal('');
         }
-        
-        // Clear form explicitly after success
-        setNewPlaylistUrl('');
-        setNewPlaylistName('');
-        setNewPlaylistTotal('');
       } catch (err) {
           console.error("Error adding playlist:", err);
           alert("Failed to add playlist. Please try again.");
@@ -121,8 +122,9 @@ const Videos = ({ db, user, appId }) => {
       if (!videoCollectionRef) return;
 
       const currentIndices = playlist.watchedIndices || [];
+      const total = playlist.totalVideos || 0;
       
-      // Case 1: Video is NOT marked as done yet.
+      // Case 1: Video is NOT marked as done yet (Marking it as DONE)
       if (!currentIndices.includes(index)) {
           const newIndices = [...currentIndices, index];
           const newCount = newIndices.length;
@@ -130,7 +132,7 @@ const Videos = ({ db, user, appId }) => {
           // Auto-advance logic: Set "Current" to the NEXT video (index + 1)
           let nextIndex = index + 1;
           // Boundary check: Don't go past the last video
-          if (nextIndex >= (playlist.totalVideos || 0)) {
+          if (total > 0 && nextIndex >= total) {
               nextIndex = index; // Stay on the last one if we finished the list
           }
 
@@ -141,7 +143,7 @@ const Videos = ({ db, user, appId }) => {
               currentVideoIndex: nextIndex // This automatically moves resume/player to next video
           });
       } 
-      // Case 2: Video IS already done.
+      // Case 2: Video IS already done (Just playing it again)
       else {
           // Just switch the player to this video without changing watched status
           const playlistRef = doc(videoCollectionRef, playlist.id);
