@@ -25,7 +25,10 @@ const Videos = ({ db, user, appId }) => {
   // UI State
   const [deleteConfirmationId, setDeleteConfirmationId] = useState(null); 
 
-  const videoCollectionRef = user ? collection(db, 'artifacts', appId, 'users', user.uid, 'videos') : null;
+  // Memoize the collection ref to prevent infinite re-subscription loops
+  const videoCollectionRef = useMemo(() => {
+      return user ? collection(db, 'artifacts', appId, 'users', user.uid, 'videos') : null;
+  }, [db, appId, user?.uid]);
 
   // --- Real-time Listeners ---
   useEffect(() => {
@@ -33,7 +36,11 @@ const Videos = ({ db, user, appId }) => {
     
     // Listen for playlists
     const unsubPlaylists = onSnapshot(videoCollectionRef, (snapshot) => {
-        const playlistsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const playlistsData = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            // Filter out any invalid/empty playlists (ghost data)
+            .filter(p => p.listId && p.name);
+            
         setPlaylists(playlistsData);
     });
     
@@ -47,7 +54,7 @@ const Videos = ({ db, user, appId }) => {
       if (selectedPlaylist) {
           setPlaylistNotes(selectedPlaylist.notes || '');
       }
-  }, [selectedPlaylistId]); // Only when ID changes, not every data update to avoid typing jitter
+  }, [selectedPlaylistId]); 
 
   // --- Helpers ---
   const getYouTubeListId = (url) => {
@@ -79,6 +86,7 @@ const Videos = ({ db, user, appId }) => {
       
       try {
         if(videoCollectionRef) {
+            // Using setDoc with listId as key ensures no duplicates for same playlist
             await setDoc(doc(videoCollectionRef, playlistId), newPlaylist);
         }
         
@@ -114,20 +122,28 @@ const Videos = ({ db, user, appId }) => {
 
       const currentIndices = playlist.watchedIndices || [];
       
-      // If already checked, just set as current video (navigation).
-      // If unchecked, mark as checked AND set as current video.
+      // Case 1: Video is NOT marked as done yet.
       if (!currentIndices.includes(index)) {
           const newIndices = [...currentIndices, index];
           const newCount = newIndices.length;
           
+          // Auto-advance logic: Set "Current" to the NEXT video (index + 1)
+          let nextIndex = index + 1;
+          // Boundary check: Don't go past the last video
+          if (nextIndex >= (playlist.totalVideos || 0)) {
+              nextIndex = index; // Stay on the last one if we finished the list
+          }
+
           const playlistRef = doc(videoCollectionRef, playlist.id);
           await updateDoc(playlistRef, { 
               watchedIndices: newIndices,
               watchedCount: newCount,
-              currentVideoIndex: index 
+              currentVideoIndex: nextIndex // This automatically moves resume/player to next video
           });
-      } else {
-          // Just navigate
+      } 
+      // Case 2: Video IS already done.
+      else {
+          // Just switch the player to this video without changing watched status
           const playlistRef = doc(videoCollectionRef, playlist.id);
           await updateDoc(playlistRef, { currentVideoIndex: index });
       }
@@ -148,6 +164,7 @@ const Videos = ({ db, user, appId }) => {
           await updateDoc(playlistRef, { 
               watchedIndices: newIndices,
               watchedCount: newCount
+              // We do NOT change currentVideoIndex on uncheck, to keep user place
           });
       }
   };
@@ -226,10 +243,11 @@ const Videos = ({ db, user, appId }) => {
           <div className="lg:col-span-2 flex flex-col gap-4">
             <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl dark:shadow-black/50 border border-zinc-200 dark:border-white/10 relative">
                <iframe 
+                    key={startIndex} // Force reload on index change to ensure next video plays
                     width="100%" 
                     height="100%" 
                     // index parameter controls which video starts. 
-                    src={`https://www.youtube.com/embed?listType=playlist&list=${selectedPlaylist.listId}&index=${startIndex}&modestbranding=1&rel=0`}
+                    src={`https://www.youtube.com/embed?listType=playlist&list=${selectedPlaylist.listId}&index=${startIndex+1}&modestbranding=1&rel=0`}
                     title={selectedPlaylist.name}
                     frameBorder="0" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
