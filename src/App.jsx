@@ -612,7 +612,9 @@ const App = () => {
                         className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${activeView === 'timer' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10'}`}
                     >
                         <Timer size={16} className={activeView === 'timer' ? 'animate-pulse' : ''}/>
-                        <span className="hidden sm:inline">Focus Mode</span>
+                        <span className="hidden sm:inline tabular-nums">
+                            {isTimerRunning ? formatTimer(timerSeconds) : "Focus Mode"}
+                        </span>
                     </button>
                 </div>
 
