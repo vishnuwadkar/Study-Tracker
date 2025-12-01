@@ -2,10 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
-  CheckCircle2, 
   Clock, 
   TrendingUp, 
-  Award,
   Save,
   X,
   BarChart3,
@@ -18,7 +16,6 @@ import {
   GraduationCap,
   Crown,
   BookOpen,
-  PieChart,
   Hourglass,
   Trash2,
   Menu,
@@ -79,6 +76,14 @@ const appId = "my-study-tracker";
 // --- Constants & Helpers ---
 const TARGET_HOURS = 8;
 const EXAM_DATE = new Date('2026-02-15');
+
+// University Exam Schedule
+const UNI_EXAMS = {
+  '2025-12-12': 'ML',
+  '2025-12-15': 'DMV',
+  '2025-12-19': 'EAC',
+  '2025-12-22': 'UI/UX'
+};
 
 // Detailed Syllabus Data based on GATE 2026 PDF
 const SYLLABUS_DATA = {
@@ -846,20 +851,34 @@ const App = () => {
                                     const hours = entry?.hours || 0;
                                     const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
                                     const metTarget = hours >= userSettings.dailyTarget;
+                                    const examPaper = UNI_EXAMS[dateKey];
+
                                     return (
                                         <div 
                                             key={day}
                                             onClick={() => handleDayClick(day)}
                                             className={`
                                                 relative aspect-square sm:aspect-[4/3] rounded-2xl p-2 sm:p-3 transition-all cursor-pointer border
-                                                flex flex-col justify-between group
+                                                flex flex-col justify-between group overflow-hidden
                                                 ${getCellColor(hours)}
                                                 ${isToday ? 'ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-black' : ''}
+                                                ${examPaper ? 'ring-2 ring-rose-500/50 ring-offset-0 dark:ring-offset-0' : ''} 
                                             `}
                                         >
-                                            <div className="flex justify-between items-start">
+                                            <div className="flex justify-between items-start w-full">
                                                 <span className={`text-sm font-bold ${metTarget ? 'text-white/90' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}>{day}</span>
-                                                {metTarget && <Crown size={16} className="text-yellow-300 fill-yellow-300 drop-shadow-md animate-pulse-slow absolute top-1 right-1 sm:static" />}
+                                                
+                                                {/* Exam Badge */}
+                                                {examPaper && (
+                                                    <span className="absolute top-2 right-2 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white px-1.5 py-0.5 rounded shadow-sm z-10">
+                                                        {examPaper}
+                                                    </span>
+                                                )}
+
+                                                {/* Crown Icon (Only if target met and no exam badge interferes visually, though absolute positioning handles overlap) */}
+                                                {metTarget && !examPaper && (
+                                                    <Crown size={16} className="text-yellow-300 fill-yellow-300 drop-shadow-md animate-pulse-slow absolute top-1 right-1 sm:static" />
+                                                )}
                                             </div>
                                             {hours > 0 ? (
                                                 <div>
