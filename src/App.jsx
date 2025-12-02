@@ -612,11 +612,12 @@ const App = () => {
                         <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest">{userSettings.stream}</p>
                     </div>
                     
+                    {/* Timer Button with Pulse Effect */}
                     <button 
                         onClick={() => setActiveView('timer')}
-                        className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${activeView === 'timer' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10'}`}
+                        className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all duration-300 ${activeView === 'timer' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10'} ${isTimerRunning ? 'shadow-[0_0_20px_rgba(16,185,129,0.5)] animate-pulse' : ''}`}
                     >
-                        <Timer size={16} className={activeView === 'timer' ? 'animate-pulse' : ''}/>
+                        <Timer size={16} className={activeView === 'timer' || isTimerRunning ? 'animate-pulse' : ''}/>
                         <span className="hidden sm:inline tabular-nums">
                             {isTimerRunning ? formatTimer(timerSeconds) : "Focus Mode"}
                         </span>
@@ -801,9 +802,9 @@ const App = () => {
 
                 {/* Right Column: Calendar (Order 1 on Mobile) */}
                 <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
-                    {/* Countdown Card - Responsive Layout Fix */}
-                    <div className="bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-600/20 backdrop-blur-2xl p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-2xl shadow-amber-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-amber-500/20">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full -mr-20 -mt-20 blur-[70px] animate-pulse-fast"></div>
+                    {/* Countdown Card - Responsive Layout Fix - PURPLE THEME */}
+                    <div className="bg-gradient-to-br from-violet-600/20 via-fuchsia-500/10 to-purple-600/20 backdrop-blur-2xl p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-2xl shadow-purple-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-purple-500/20">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full -mr-20 -mt-20 blur-[70px] animate-pulse-fast"></div>
                         <div className="relative z-10 flex flex-row items-center justify-between gap-4"> {/* Forced row layout for mobile */}
                             <div className="text-left">
                                 <div className="flex items-center justify-start gap-2 mb-1">
@@ -814,8 +815,8 @@ const App = () => {
                                     {stats.daysRemaining} <span className="text-lg sm:text-2xl md:text-3xl font-medium text-zinc-500">days</span>
                                 </h3>
                             </div>
-                            <div className="bg-amber-250/10 p-3 sm:p-5 rounded-xl sm:rounded-3xl backdrop-blur-md border border-amber-500/30 shadow-[0_0_40px_rgba(245,158,11,0.2)] flex-shrink-0">
-                                <Hourglass className="text-amber-200 animate-pulse drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] w-6 h-6 sm:w-10 sm:h-10" />
+                            <div className="bg-purple-200/10 p-3 sm:p-5 rounded-xl sm:rounded-3xl backdrop-blur-md border border-purple-500/30 shadow-[0_0_40px_rgba(168,85,247,0.2)] flex-shrink-0">
+                                <Hourglass className="text-purple-200 animate-pulse drop-shadow-[0_0_15px_rgba(192,132,252,0.8)] w-6 h-6 sm:w-10 sm:h-10" />
                             </div>
                         </div>
                     </div>
@@ -858,7 +859,7 @@ const App = () => {
                                             key={day}
                                             onClick={() => handleDayClick(day)}
                                             className={`
-                                                relative aspect-square sm:aspect-[4/3] rounded-2xl p-2 sm:p-3 transition-all cursor-pointer border
+                                                relative aspect-[3/4] sm:aspect-[4/5] rounded-2xl p-2 sm:p-3 transition-all cursor-pointer border
                                                 flex flex-col justify-between group overflow-hidden
                                                 ${getCellColor(hours)}
                                                 ${isToday ? 'ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-black' : ''}
@@ -875,7 +876,7 @@ const App = () => {
                                                     </span>
                                                 )}
 
-                                                {/* Crown Icon (Only if target met and no exam badge interferes visually, though absolute positioning handles overlap) */}
+                                                {/* Crown Icon */}
                                                 {metTarget && !examPaper && (
                                                     <Crown size={16} className="text-yellow-300 fill-yellow-300 drop-shadow-md animate-pulse-slow absolute top-1 right-1 sm:static" />
                                                 )}
@@ -904,7 +905,18 @@ const App = () => {
 
         {/* VIEW: VIDEOS (Always Mounted to Prevent Iframe Refresh) */}
         <div style={{ display: activeView === 'videos' ? 'block' : 'none', height: '100%' }}>
-            <Videos db={db} user={user} appId={appId} />
+            {/* NOTE: The internal playlist input logic is inside the `Videos` component. 
+                I have passed the `syllabus` and `progress` props so you can update 
+                Videos.jsx to handle the per-subject playlist logic there. 
+            */}
+            <Videos 
+                db={db} 
+                user={user} 
+                appId={appId} 
+                syllabus={SYLLABUS_DATA} 
+                progress={syllabusProgress}
+                stream={userSettings.stream}
+            />
         </div>
         
         {/* VIEW: TIMER */}
@@ -1081,8 +1093,8 @@ const App = () => {
                 <button onClick={() => setModalMode('add')} className={`flex-1 py-4 text-sm font-bold text-center ${modalMode === 'add' ? 'text-amber-500 bg-zinc-50 dark:bg-white/5' : 'text-zinc-400'}`}>Add Session</button>
             </div>
 
-            {/* Left Column: Day Overview */}
-            <div className={`w-full md:w-1/2 bg-zinc-50/50 dark:bg-black/20 p-6 md:p-8 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-white/5 flex-col h-full md:flex ${modalMode === 'view' ? 'flex' : 'hidden'}`}>
+            {/* Left Column: Day Overview (NOW WITH SCROLLER FIX) */}
+            <div className={`w-full md:w-1/2 bg-zinc-50/50 dark:bg-black/20 p-6 md:p-8 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-white/5 flex flex-col h-full overflow-hidden ${modalMode === 'view' ? 'flex' : 'hidden'}`}>
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h3 className="text-lg font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Day Overview</h3>
@@ -1099,7 +1111,7 @@ const App = () => {
                     <button onClick={() => setIsModalOpen(false)} className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-500 hover:bg-zinc-200"><X size={18}/></button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar min-h-0">
                     {getSelectedSessions().length > 0 ? (
                         getSelectedSessions().map((s, idx) => (
                             <div key={s.id || idx} className="flex items-center justify-between bg-white dark:bg-white/5 p-4 rounded-2xl border border-zinc-100 dark:border-white/5 hover:border-amber-500/30 dark:hover:border-amber-500/30 transition-all group shadow-sm">

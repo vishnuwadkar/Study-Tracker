@@ -1,19 +1,20 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Youtube, Plus, Video, ArrowLeft, Clock, Trash2, Edit, Save, PlayCircle, ExternalLink, BookOpen, CheckCircle2, Play, Minus, AlertTriangle, X, Check } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Youtube, Plus, Video, ArrowLeft, Clock, Trash2, Edit, Save, PlayCircle, ExternalLink, BookOpen, CheckCircle2, Play, Minus, AlertTriangle, X, Check, ChevronDown, RefreshCw, Zap } from 'lucide-react';
 import { collection, doc, setDoc, onSnapshot, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 
-const Videos = ({ db, user, appId }) => {
+const Videos = ({ db, user, appId, syllabus, progress, stream }) => {
   const [playlists, setPlaylists] = useState([]);
   
   // Add Form State
   const [newPlaylistUrl, setNewPlaylistUrl] = useState('');
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [newPlaylistTotal, setNewPlaylistTotal] = useState(''); 
+  const [newPlaylistSubject, setNewPlaylistSubject] = useState(''); // NEW: Subject Selection
   
-  // Use ID to track selection so we always get the latest data from 'playlists' (Firestore)
+  // Use ID to track selection
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
   
-  // Derive the selected playlist object from the live data
+  // Derive selected playlist
   const selectedPlaylist = useMemo(() => 
     playlists.find(p => p.id === selectedPlaylistId) || null
   , [playlists, selectedPlaylistId]);
@@ -25,7 +26,7 @@ const Videos = ({ db, user, appId }) => {
   // UI State
   const [deleteConfirmationId, setDeleteConfirmationId] = useState(null); 
 
-  // Memoize the collection ref to prevent infinite re-subscription loops
+  // Memoize collection ref
   const videoCollectionRef = useMemo(() => {
       return user ? collection(db, 'artifacts', appId, 'users', user.uid, 'videos') : null;
   }, [db, appId, user?.uid]);
@@ -33,25 +34,16 @@ const Videos = ({ db, user, appId }) => {
   // --- Real-time Listeners ---
   useEffect(() => {
     if (!videoCollectionRef) return;
-    
-    // Listen for playlists
     const unsubPlaylists = onSnapshot(videoCollectionRef, (snapshot) => {
         const playlistsData = snapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
-            // FILTER: Remove any "ghost" playlists that don't have a valid listId or Name
-            .filter(p => p.listId && p.name);
-            
+            .filter(p => p.listId && p.name);  
         setPlaylists(playlistsData);
-    }, (error) => {
-        console.error("Error fetching playlists:", error);
-    });
-    
-    return () => {
-        unsubPlaylists();
-    };
+    }, (error) => console.error("Error fetching playlists:", error));
+    return () => unsubPlaylists();
   }, [videoCollectionRef]);
 
-  // Sync local notes with selected playlist when it opens
+  // Sync notes
   useEffect(() => {
       if (selectedPlaylist) {
           setPlaylistNotes(selectedPlaylist.notes || '');
@@ -64,6 +56,11 @@ const Videos = ({ db, user, appId }) => {
           const urlObj = new URL(url);
           return urlObj.searchParams.get('list');
       } catch (e) { return null; }
+  };
+
+  const getAvailableSubjects = () => {
+      if (!syllabus || !stream || !syllabus[stream]) return [];
+      return Object.keys(syllabus[stream]);
   };
 
   // --- Handlers ---
@@ -79,25 +76,25 @@ const Videos = ({ db, user, appId }) => {
         listId: listId,
         url: newPlaylistUrl,
         name: newPlaylistName,
+        subject: newPlaylistSubject, // NEW: Save Subject
         totalVideos: parseInt(newPlaylistTotal) || 0,
         watchedCount: 0,
-        watchedIndices: [], // Track specific videos completed
-        currentVideoIndex: 0, // Track where to resume
+        watchedIndices: [], 
+        currentVideoIndex: 0, 
         createdAt: new Date().toISOString()
       };
       
       try {
         if(videoCollectionRef) {
             await setDoc(doc(videoCollectionRef, playlistId), newPlaylist);
-            
-            // Clear form explicitly after success
             setNewPlaylistUrl('');
             setNewPlaylistName('');
             setNewPlaylistTotal('');
+            setNewPlaylistSubject('');
         }
       } catch (err) {
           console.error("Error adding playlist:", err);
-          alert("Failed to add playlist. Please try again.");
+          alert("Failed to add playlist.");
       }
     } else {
       alert('Please enter a valid YouTube Playlist URL and a Name.');
@@ -124,28 +121,19 @@ const Videos = ({ db, user, appId }) => {
       const currentIndices = playlist.watchedIndices || [];
       const total = playlist.totalVideos || 0;
       
-      // Case 1: Video is NOT marked as done yet (Marking it as DONE)
       if (!currentIndices.includes(index)) {
           const newIndices = [...currentIndices, index];
           const newCount = newIndices.length;
-          
-          // Auto-advance logic: Set "Current" to the NEXT video (index + 1)
           let nextIndex = index + 1;
-          // Boundary check: Don't go past the last video
-          if (total > 0 && nextIndex >= total) {
-              nextIndex = index; // Stay on the last one if we finished the list
-          }
+          if (total > 0 && nextIndex >= total) nextIndex = index;
 
           const playlistRef = doc(videoCollectionRef, playlist.id);
           await updateDoc(playlistRef, { 
               watchedIndices: newIndices,
               watchedCount: newCount,
-              currentVideoIndex: nextIndex // This automatically moves resume/player to next video
+              currentVideoIndex: nextIndex 
           });
-      } 
-      // Case 2: Video IS already done (Just playing it again)
-      else {
-          // Just switch the player to this video without changing watched status
+      } else {
           const playlistRef = doc(videoCollectionRef, playlist.id);
           await updateDoc(playlistRef, { currentVideoIndex: index });
       }
@@ -154,27 +142,18 @@ const Videos = ({ db, user, appId }) => {
   const handleVideoDoubleClick = async (playlist, index, e) => {
       e.stopPropagation();
       if (!videoCollectionRef) return;
-
       const currentIndices = playlist.watchedIndices || [];
-      
-      // Unmark if currently checked
       if (currentIndices.includes(index)) {
           const newIndices = currentIndices.filter(i => i !== index);
           const newCount = newIndices.length;
-
           const playlistRef = doc(videoCollectionRef, playlist.id);
-          await updateDoc(playlistRef, { 
-              watchedIndices: newIndices,
-              watchedCount: newCount
-              // We do NOT change currentVideoIndex on uncheck, to keep user place
-          });
+          await updateDoc(playlistRef, { watchedIndices: newIndices, watchedCount: newCount });
       }
   };
 
   const handleQuickLog = async (minutes) => {
       if (!user || !selectedPlaylist) return;
       setIsLogging(true);
-      
       try {
         const today = new Date();
         const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -186,7 +165,7 @@ const Videos = ({ db, user, appId }) => {
         const hoursToAdd = minutes / 60;
         const newSession = {
             id: Date.now().toString(),
-            subject: selectedPlaylist.name || 'Video Study',
+            subject: selectedPlaylist.subject || selectedPlaylist.name || 'Video Study', // Use playlist subject if available
             hours: hoursToAdd,
             notes: `Watched ${selectedPlaylist.name} (Quick Log)`,
             timestamp: new Date().toISOString()
@@ -195,19 +174,9 @@ const Videos = ({ db, user, appId }) => {
         const updatedSessions = [...(currentData.sessions || []), newSession];
         const newTotalHours = updatedSessions.reduce((sum, s) => sum + s.hours, 0);
 
-        await setDoc(docRef, {
-            hours: newTotalHours,
-            sessions: updatedSessions,
-            updatedAt: new Date().toISOString()
-        });
-        
+        await setDoc(docRef, { hours: newTotalHours, sessions: updatedSessions, updatedAt: new Date().toISOString() });
         alert(`Logged ${minutes} mins for "${selectedPlaylist.name}"!`);
-      } catch (err) {
-          console.error("Error logging time:", err);
-          alert("Failed to log time. Please try again.");
-      } finally {
-          setIsLogging(false);
-      }
+      } catch (err) { console.error("Error logging time:", err); } finally { setIsLogging(false); }
   };
 
   const handleSaveNotes = async () => {
@@ -221,10 +190,57 @@ const Videos = ({ db, user, appId }) => {
       setSelectedPlaylistId(playlist.id);
   };
 
+  // --- NEW: Syllabus Handling for Video View ---
+  const toggleSyllabusItem = async (subject, topic, field) => {
+    if (!user || !subject) return;
+    
+    // Construct the Deep Update for Firestore Map
+    // We use dot notation 'subject.topic.field' to update nested fields without overwriting
+    const docPath = `progress`; // The document ID inside 'syllabus' collection
+    const sylRef = doc(db, 'artifacts', appId, 'users', user.uid, 'syllabus', docPath);
+
+    try {
+        // Read current state first to toggle boolean correctly
+        const currentDone = progress?.[subject]?.[topic]?.done || false;
+        const currentRev = progress?.[subject]?.[topic]?.rev || 0;
+
+        let updateData = {};
+        
+        if (field === 'done') {
+            updateData = { [`${subject}.${topic}.done`]: !currentDone };
+        } else if (field === 'rev_inc') {
+            updateData = { [`${subject}.${topic}.rev`]: currentRev + 1 };
+        } else if (field === 'rev_dec') {
+            updateData = { [`${subject}.${topic}.rev`]: Math.max(0, currentRev - 1) };
+        }
+
+        await updateDoc(sylRef, updateData).catch(async (err) => {
+             // If document doesn't exist yet, we might need setDoc with merge
+             if (err.code === 'not-found') {
+                 // Fallback to manual object construction for first write
+                 const newState = { ...progress };
+                 if(!newState[subject]) newState[subject] = {};
+                 if(!newState[subject][topic]) newState[subject][topic] = { done: false, rev: 0 };
+                 
+                 if(field === 'done') newState[subject][topic].done = !currentDone;
+                 if(field === 'rev_inc') newState[subject][topic].rev = currentRev + 1;
+                 
+                 await setDoc(sylRef, newState);
+             } else {
+                 console.error(err);
+             }
+        });
+    } catch (err) {
+        console.error("Error updating syllabus:", err);
+    }
+  };
+
   // --- View: Single Playlist (Player) ---
   if (selectedPlaylist) {
-    // Calculate the start index for the embed
     const startIndex = selectedPlaylist.currentVideoIndex || 0;
+    const subjectData = (syllabus && stream && selectedPlaylist.subject) 
+        ? syllabus[stream][selectedPlaylist.subject] 
+        : null;
 
     return (
       <div className="animate-in fade-in duration-300 h-full flex flex-col">
@@ -242,13 +258,12 @@ const Videos = ({ db, user, appId }) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
           
           {/* Main Player Column */}
-          <div className="lg:col-span-2 flex flex-col gap-4">
-            <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl dark:shadow-black/50 border border-zinc-200 dark:border-white/10 relative">
+          <div className="lg:col-span-2 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2">
+            <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl dark:shadow-black/50 border border-zinc-200 dark:border-white/10 relative shrink-0">
                <iframe 
-                    key={startIndex} // Force reload on index change to ensure next video plays
+                    key={startIndex} 
                     width="100%" 
                     height="100%" 
-                    // index parameter controls which video starts. 
                     src={`https://www.youtube.com/embed?listType=playlist&list=${selectedPlaylist.listId}&index=${startIndex+1}&modestbranding=1&rel=0`}
                     title={selectedPlaylist.name}
                     frameBorder="0" 
@@ -258,16 +273,52 @@ const Videos = ({ db, user, appId }) => {
                 ></iframe>
             </div>
             
-            <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-white/10 flex justify-between items-center">
+            <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-white/10 flex justify-between items-center shrink-0">
                 <div>
                     <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-1">{selectedPlaylist.name}</h2>
                     <div className="flex gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                        <span className="flex items-center gap-1"><Youtube size={12}/> YouTube Playlist</span>
+                        <span className="flex items-center gap-1"><Youtube size={12}/> {selectedPlaylist.subject || 'Uncategorized'}</span>
                         <span>•</span>
                         <a href={selectedPlaylist.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-amber-500 hover:underline">Open in YouTube <ExternalLink size={10}/></a>
                     </div>
                 </div>
             </div>
+
+            {/* NEW: Syllabus Section (Only if subject matches) */}
+            {subjectData && (
+                <div className="bg-white dark:bg-zinc-900/50 p-5 rounded-2xl border border-zinc-200 dark:border-white/10 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4 text-zinc-900 dark:text-white font-bold border-b border-zinc-100 dark:border-white/5 pb-2">
+                        <ListChecks size={18} className="text-amber-500"/> 
+                        <h3>{selectedPlaylist.subject} Syllabus</h3>
+                        <span className="ml-auto text-xs font-normal text-zinc-400">Mark topics as you watch</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {subjectData.topics.map(topic => {
+                             const tData = progress?.[selectedPlaylist.subject]?.[topic] || { done: false, rev: 0 };
+                             return (
+                                <div key={topic} className="flex items-center justify-between p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/5 transition-colors group border border-transparent hover:border-zinc-100 dark:hover:border-white/5">
+                                    <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleSyllabusItem(selectedPlaylist.subject, topic, 'done')}>
+                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${tData.done ? 'bg-amber-500 border-amber-500 text-white' : 'border-zinc-300 dark:border-zinc-600 text-transparent group-hover:border-amber-400'}`}>
+                                            <Check size={10} strokeWidth={4} />
+                                        </div>
+                                        <span className={`text-xs font-medium transition-colors ${tData.done ? 'text-zinc-400 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>{topic}</span>
+                                    </div>
+                                    {/* Mini Revision Counter */}
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-[9px] font-bold text-zinc-300 uppercase">Rev</span>
+                                        <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-white/10">
+                                            <button onClick={() => toggleSyllabusItem(selectedPlaylist.subject, topic, 'rev_inc')} className="px-1.5 py-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                                                <RefreshCw size={10} />
+                                            </button>
+                                            <span className="px-1 text-[10px] font-bold text-zinc-600 dark:text-zinc-400">{tData.rev || 0}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                             )
+                        })}
+                    </div>
+                </div>
+            )}
           </div>
 
           {/* Sidebar: Study Tools */}
@@ -277,7 +328,7 @@ const Videos = ({ db, user, appId }) => {
              <div className="bg-white dark:bg-zinc-900/50 p-5 rounded-2xl border border-zinc-200 dark:border-white/10 shadow-sm">
                 <div className="flex items-center gap-2 mb-4 text-zinc-900 dark:text-white font-bold">
                     <CheckCircle2 size={18} className="text-emerald-500"/> 
-                    <h3>Track Progress</h3>
+                    <h3>Track Videos</h3>
                 </div>
                 <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto custom-scrollbar p-1">
                     {Array.from({ length: selectedPlaylist.totalVideos || 0 }).map((_, i) => {
@@ -303,9 +354,6 @@ const Videos = ({ db, user, appId }) => {
                             </button>
                         )
                     })}
-                </div>
-                <div className="mt-3 text-xs text-center text-zinc-400">
-                    Click to mark & play. <span className="text-red-400">Double-click to unmark.</span>
                 </div>
             </div>
 
@@ -358,7 +406,7 @@ const Videos = ({ db, user, appId }) => {
             <p className="text-zinc-500 dark:text-zinc-400">Curate playlists & track your progress.</p>
         </div>
 
-        {/* Compact Add Form - Top Right */}
+        {/* Compact Add Form */}
         <form onSubmit={handleAddPlaylist} className="bg-white dark:bg-zinc-900/50 p-2 pl-3 rounded-2xl border border-zinc-200 dark:border-white/10 shadow-sm flex flex-col sm:flex-row gap-2 items-center w-full xl:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Youtube className="text-zinc-400 shrink-0" size={18} />
@@ -367,15 +415,32 @@ const Videos = ({ db, user, appId }) => {
                     value={newPlaylistUrl}
                     onChange={(e) => setNewPlaylistUrl(e.target.value)}
                     placeholder="Playlist URL"
-                    className="w-full sm:w-48 bg-transparent text-sm text-zinc-900 dark:text-white outline-none placeholder:text-zinc-400"
+                    className="w-full sm:w-40 bg-transparent text-sm text-zinc-900 dark:text-white outline-none placeholder:text-zinc-400"
                 />
             </div>
+            <div className="w-px h-6 bg-zinc-200 dark:bg-white/10 hidden sm:block"></div>
+            
+            {/* NEW: Subject Selector in Add Form */}
+            <div className="relative w-full sm:w-40 group">
+                <select 
+                    value={newPlaylistSubject}
+                    onChange={(e) => setNewPlaylistSubject(e.target.value)}
+                    className="w-full appearance-none bg-transparent text-sm font-bold text-zinc-700 dark:text-zinc-300 outline-none cursor-pointer pl-2 pr-6 py-1"
+                >
+                    <option value="" disabled>Select Subject</option>
+                    {getAvailableSubjects().map(sub => (
+                        <option key={sub} value={sub} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-200">{sub}</option>
+                    ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"/>
+            </div>
+
             <div className="w-px h-6 bg-zinc-200 dark:bg-white/10 hidden sm:block"></div>
             <input
                 type="text"
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
-                placeholder="Name"
+                placeholder="Alias Name"
                 className="w-full sm:w-32 bg-transparent px-2 text-sm text-zinc-900 dark:text-white outline-none placeholder:text-zinc-400"
             />
             <div className="w-px h-6 bg-zinc-200 dark:bg-white/10 hidden sm:block"></div>
@@ -428,6 +493,11 @@ const Videos = ({ db, user, appId }) => {
                     <h3 className="font-black text-zinc-900 dark:text-white text-lg leading-tight line-clamp-2 uppercase tracking-tight">
                         {playlist.name}
                     </h3>
+                    {playlist.subject && (
+                        <div className="mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-200 dark:bg-black/40 text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+                            {playlist.subject}
+                        </div>
+                    )}
                     
                     {/* Resume Overlay */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
@@ -512,5 +582,10 @@ const Videos = ({ db, user, appId }) => {
     </div>
   );
 };
+
+// Simple Icon Import for new Syllabus features
+const ListChecks = ({ size, className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M10 6h10"/><path d="M10 12h10"/><path d="M10 18h10"/><path d="M4 6h1"/><path d="M4 12h1"/><path d="M4 18h1"/></svg>
+);
 
 export default Videos;
