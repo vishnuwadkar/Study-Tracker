@@ -693,7 +693,7 @@ const App = () => {
                         {stats.todayHours >= userSettings.dailyTarget && (
                             <div className="absolute inset-0 bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center backdrop-blur-sm animate-in fade-in">
                                 <div className="bg-white dark:bg-black p-3 rounded-2xl shadow-xl flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold border border-amber-200 dark:border-amber-900/50">
-                                    <Crown size={20} fill="currentColor" /> Goal Crushed!
+                                    <Crown size={20} fill="currentColor" /> A step closer to IIT!
                                 </div>
                             </div>
                         )}
