@@ -5,46 +5,50 @@ import {
   Clock, 
   TrendingUp, 
   Save,
-  X,
-  BarChart3,
-  Target,
-  Zap,
-  Moon,
-  Sun,
-  LogOut,
-  LogIn,
-  GraduationCap,
-  Crown,
-  BookOpen,
-  Hourglass,
-  Trash2,
-  Menu,
-  Settings,
-  LayoutDashboard,
-  ListChecks,
-  Timer,
-  Play,
-  Pause,
-  Square,
-  ChevronDown,
-  ChevronUp,
-  Maximize,
-  Minimize,
-  AlertTriangle,
-  Check,
-  RefreshCw,
-  User,
-  BrainCircuit,
-  Plus,
-  Youtube
+  X, 
+  BarChart3, 
+  Target, 
+  Zap, 
+  Moon, 
+  Sun, 
+  LogOut, 
+  LogIn, 
+  GraduationCap, 
+  Crown, 
+  BookOpen, 
+  Hourglass, 
+  Trash2, 
+  Menu, 
+  Settings, 
+  LayoutDashboard, 
+  ListChecks, 
+  Timer, 
+  Play, 
+  Pause, 
+  Square, 
+  ChevronDown, 
+  ChevronUp, 
+  Maximize, 
+  Minimize, 
+  AlertTriangle, 
+  Check, 
+  RefreshCw, 
+  User, 
+  BrainCircuit, 
+  Plus, 
+  Youtube,
+  FileText,     // New
+  AlertOctagon, // New
+  StickyNote,    // New
+  PenTool       // New
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut
+  onAuthStateChanged, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut 
 } from 'firebase/auth';
 import { 
   getFirestore, 
@@ -52,8 +56,8 @@ import {
   doc, 
   setDoc, 
   onSnapshot, 
-  deleteDoc,
-  getDoc
+  deleteDoc, 
+  getDoc 
 } from 'firebase/firestore';
 import Videos from './components/Videos';
 
@@ -174,7 +178,6 @@ const SYLLABUS_DATA = {
     "Engineering Math": { weight: 10, topics: ["Linear Algebra", "Calculus", "Probability", "Discrete Math"] },
     "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
   },
-  // Fallback structure for other streams
   Other: { "General Subject": { weight: 100, topics: ["Topic 1", "Topic 2"] } }
 };
 
@@ -255,7 +258,8 @@ const App = () => {
   const [modalMode, setModalMode] = useState('view'); // 'view' | 'add'
   const [expandedSubjects, setExpandedSubjects] = useState({});
   const [deleteConfirm, setDeleteConfirm] = useState(null); 
-  
+  const [scratchpad, setScratchpad] = useState('');
+   
   // Timer
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -309,6 +313,7 @@ const App = () => {
   const releaseWakeLock = async () => { if (wakeLock) { await wakeLock.release(); setWakeLock(null); } };
 
   useEffect(() => { const unsubscribe = onAuthStateChanged(auth, setUser); return () => unsubscribe(); }, []);
+  
   useEffect(() => {
     if (!user) return;
     const logsRef = collection(db, 'artifacts', appId, 'users', user.uid, 'study_log');
@@ -319,7 +324,11 @@ const App = () => {
     });
     const sylRef = doc(db, 'artifacts', appId, 'users', user.uid, 'syllabus', 'progress');
     const unsubSyl = onSnapshot(sylRef, (doc) => { if (doc.exists()) setSyllabusProgress(doc.data()); });
+    
+    // Scratchpad & Settings
     const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config');
+    const scratchpadRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'scratchpad');
+    
     getDoc(settingsRef).then((snap) => {
         if (snap.exists()) {
             const data = snap.data();
@@ -329,13 +338,20 @@ const App = () => {
             }
         }
     });
+
+    getDoc(scratchpadRef).then((snap) => {
+        if(snap.exists()) setScratchpad(snap.data().content || '');
+    });
+
     return () => { unsubLogs(); unsubSyl(); };
   }, [user]);
+
   useEffect(() => {
     const root = window.document.documentElement;
     if (isDarkMode) { root.classList.add('dark'); localStorage.setItem('theme', 'dark'); } 
     else { root.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
   }, [isDarkMode]);
+  
   useEffect(() => {
     if (!timerSubject && userSettings.stream && SYLLABUS_DATA[userSettings.stream]) {
         setTimerSubject(Object.keys(SYLLABUS_DATA[userSettings.stream])[0]);
@@ -345,17 +361,13 @@ const App = () => {
   // --- Handlers ---
   const handleStartTimer = () => {
     const now = Date.now();
-    // Resume correctly by offsetting the start time by the elapsed seconds
     const newStart = now - (timerSeconds * 1000); 
     setStartTime(newStart);
-    
-    // Only set session start time if it's a fresh start (timer was at 0)
     if (!sessionStartTime && timerSeconds === 0) { 
         const sStart = new Date().toISOString(); 
         setSessionStartTime(sStart); 
         localStorage.setItem('sessionStartTime', sStart); 
     }
-    
     setIsTimerRunning(true); 
     requestWakeLock();
   };
@@ -366,20 +378,26 @@ const App = () => {
     const h = Math.floor(timerSeconds / 3600); const m = Math.round((timerSeconds % 3600) / 60);
     const today = new Date(); const dateKey = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate());
     setSelectedDate(dateKey); setInputHours(h.toString()); setInputMinutes(m.toString()); setInputSubject(timerSubject);
-    
-    // Pre-fill notes but DO NOT clear sessionStartTime yet
     const timeStr = sessionStartTime ? formatTimeOnly(sessionStartTime) : formatTimeOnly(new Date().toISOString());
     setInputNotes(`Started at ${timeStr} via Focus Timer`);
-    
     setTimerSeconds(0); setStartTime(null); 
-    // Don't clear sessionStartTime here, wait for save
     localStorage.removeItem('timerStart'); localStorage.removeItem('isTimerRunning'); 
-    
     setIsModalOpen(true); setActiveView('dashboard'); setModalMode('add');
   };
   const handleGoogleLogin = async () => { const provider = new GoogleAuthProvider(); try { await signInWithPopup(auth, provider); } catch (error) { alert(error.message); } };
   const handleLogout = async () => { try { await signOut(auth); setEntries({}); setSyllabusProgress({}); setIsSettingsOpen(false); } catch (error) { console.error(error); } };
   const handleSaveSettings = async () => { if (!user) return; try { const settingsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config'); await setDoc(settingsRef, userSettings); setIsSettingsOpen(false); } catch (err) { console.error(err); } };
+  
+  const handleSaveScratchpad = async (content) => {
+      setScratchpad(content);
+      if(!user) return;
+      try {
+          // Debounced save would be better, but direct set is okay for now
+          const scratchpadRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'scratchpad');
+          await setDoc(scratchpadRef, { content, updatedAt: new Date().toISOString() });
+      } catch(err) { console.error(err); }
+  }
+
   const toggleSyllabusItem = async (subject, topic, field) => {
     if (!user) return;
     const newProgress = { ...syllabusProgress };
@@ -398,7 +416,7 @@ const App = () => {
     const dateKey = formatDateKey(year, month, day);
     setSelectedDate(dateKey); setInputHours(''); setInputMinutes(''); setInputNotes('');
     setInputSubject(Object.keys(SYLLABUS_DATA[userSettings.stream] || {})[0] || 'Other');
-    setSessionStartTime(null); // Reset for manual entry
+    setSessionStartTime(null); 
     setModalMode('view'); setIsModalOpen(true);
   };
   const handleSaveSession = async (e) => {
@@ -413,10 +431,7 @@ const App = () => {
         const currentEntry = entries[selectedDate] || {};
         let sessions = currentEntry.sessions || [];
         if (!currentEntry.sessions && currentEntry.hours) { sessions = [{ id: 'legacy', subject: currentEntry.subject || 'Other', hours: currentEntry.hours, notes: currentEntry.notes || '' }]; }
-        
-        // Use stored start time if available (from timer), else current time
         let timeLog = sessionStartTime || new Date().toISOString(); 
-        
         const newSession = { id: Date.now().toString(), subject: inputSubject, hours: sessionHours, notes: inputNotes, timestamp: timeLog };
         const updatedSessions = [...sessions, newSession];
         updatedSessions.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -424,7 +439,7 @@ const App = () => {
         await setDoc(docRef, { hours: newTotalHours, sessions: updatedSessions, updatedAt: new Date().toISOString() });
       }
       setInputHours(''); setInputMinutes(''); setInputNotes(''); 
-      setSessionStartTime(null); localStorage.removeItem('sessionStartTime'); // Clear start time after save
+      setSessionStartTime(null); localStorage.removeItem('sessionStartTime'); 
       setIsLoading(false); setModalMode('view');
     } catch (err) { console.error("Save error", err); setIsLoading(false); }
   };
@@ -464,7 +479,6 @@ const App = () => {
     let todayHours = 0;
     const timeOfDay = { morning: 0, afternoon: 0, evening: 0, night: 0 };
 
-    // Calendar Stats
     for (let d = 1; d <= daysInMonth; d++) {
       const key = formatDateKey(year, month, d);
       const entry = entries[key];
@@ -476,7 +490,6 @@ const App = () => {
             entry.sessions.forEach(s => { 
                 const sub = s.subject || "Other"; 
                 subjectTotals[sub] = (subjectTotals[sub] || 0) + s.hours;
-                // Time of day analysis
                 if(s.timestamp) {
                     const hour = new Date(s.timestamp).getHours();
                     if(hour >= 5 && hour < 12) timeOfDay.morning += s.hours;
@@ -498,8 +511,6 @@ const App = () => {
 
     const sortedSubjects = Object.entries(subjectTotals).sort(([,a], [,b]) => b - a).map(([name, hours]) => ({ name, hours, percent: monthlyTotal > 0 ? (hours / monthlyTotal) * 100 : 0 }));
     const todayBreakdown = Object.entries(todaySubjects).sort(([,a], [,b]) => b - a);
-    
-    // Determine peak productivity
     const peakTime = Object.entries(timeOfDay).sort(([,a], [,b]) => b - a)[0]?.[0] || '-';
     const bestSubject = sortedSubjects.length > 0 ? sortedSubjects[0].name : "None";
 
@@ -515,7 +526,7 @@ const App = () => {
     }
 
     const weeklyData = [];
-    const chartEnd = new Date(today); // normalized
+    const chartEnd = new Date(today); 
     for(let i=6; i>=0; i--) {
         const d = new Date(chartEnd);
         d.setDate(d.getDate() - i);
@@ -528,14 +539,8 @@ const App = () => {
     const examDiff = EXAM_DATE.getTime() - today.getTime(); 
     const daysRemaining = Math.ceil(examDiff / (1000 * 60 * 60 * 24));
 
-    // Weighted Syllabus
     let totalWeightedScore = 0; let achievedWeightedScore = 0; let totalRevisions = 0;
     const streamData = SYLLABUS_DATA[userSettings.stream] || {};
-    const allSubjectTotals = {}; // Accumulate totals for syllabus view
-
-    // We must iterate through LOGGED hours to calculate subject progress properly if needed? 
-    // Actually, the prompt requested "Hours spent on each subject in front of each subject".
-    // We already have `subjectTotals` from above.
     
     Object.entries(streamData).forEach(([subject, data]) => {
         const weight = data.weight || 0; const topics = data.topics || [];
@@ -570,6 +575,8 @@ const App = () => {
 
   const activeStreamSubjects = SYLLABUS_DATA[userSettings.stream] ? Object.keys(SYLLABUS_DATA[userSettings.stream]) : [];
 
+  // --- Render ---
+
   if (!user) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-4 transition-colors duration-300">
@@ -583,11 +590,6 @@ const App = () => {
           <button onClick={handleGoogleLogin} className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg dark:shadow-white/10 relative z-10">
             <LogIn size={20} /> Sign in with Google
           </button>
-          <div className="mt-8 flex justify-center gap-4 relative z-10">
-             <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
-                {isDarkMode ? <Sun size={20}/> : <Moon size={20}/>}
-             </button>
-          </div>
         </div>
       </div>
     );
@@ -596,7 +598,10 @@ const App = () => {
   return (
     <div className={`min-h-screen bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-300 selection:bg-amber-500/30 ${isTimerRunning && isZenMode ? 'overflow-hidden' : ''}`}>
       
-      {/* Top Navigation (Hidden in Zen Mode) */}
+      {/* --- GLOBAL CRITICAL PULSE VIGNETTE --- */}
+      <div className="fixed inset-0 pointer-events-none z-[9999] shadow-[inset_0_0_80px_rgba(220,38,38,0.60)] dark:shadow-[inset_0_0_100px_rgba(220,38,38,0.3)] animate-pulse-slow"></div>
+
+      {/* Top Navigation */}
       {(!isTimerRunning || !isZenMode) && (
         <nav className="bg-white/80 dark:bg-black/50 border-b border-zinc-200 dark:border-white/10 sticky top-0 z-30 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-black/50 transition-colors duration-300">
             <div className="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -612,7 +617,7 @@ const App = () => {
                         <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest">{userSettings.stream}</p>
                     </div>
                     
-                    {/* Timer Button with Pulse Effect */}
+                    {/* Timer Button */}
                     <button 
                         onClick={() => setActiveView('timer')}
                         className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all duration-300 ${activeView === 'timer' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-zinc-100 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-white/10'} ${isTimerRunning ? 'shadow-[0_0_20px_rgba(16,185,129,0.5)] animate-pulse' : ''}`}
@@ -658,7 +663,7 @@ const App = () => {
                 {/* Left Column */}
                 <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-28 lg:h-fit order-2 lg:order-1">
 
-                    {/* 4. STREAK CARD */}
+                    {/* STREAK CARD */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 dark:bg-amber-500/10 rounded-full -mr-10 -mt-10 blur-3xl animate-pulse-slow"></div>
                         <div className="relative z-10">
@@ -672,7 +677,7 @@ const App = () => {
                         </div>
                     </div>
                     
-                    {/* 1. HOURS LEFT TODAY */}
+                    {/* HOURS LEFT TODAY */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden group">
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Daily Target</h3>
@@ -699,7 +704,7 @@ const App = () => {
                         )}
                     </div>
 
-                    {/* 3. TODAY'S BREAKDOWN */}
+                    {/* TODAY'S BREAKDOWN */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
                         <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">Studied Today</h3>
                         <div className="space-y-3">
@@ -719,30 +724,7 @@ const App = () => {
                         </div>
                     </div>
 
-                    {/* 5. SYLLABUS STATUS */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden">
-                        <div className="flex items-center justify-between mb-4 relative z-10">
-                            <div>
-                                <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Syllabus Status</h3>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">{stats.syllabusCompletion}%</span>
-                                    <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Completed</span>
-                                </div>
-                            </div>
-                            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-lg">
-                                <BookOpen size={20} className="text-emerald-600 dark:text-emerald-400" />
-                            </div>
-                        </div>
-                        <div className="relative w-full h-4 bg-zinc-100 dark:bg-white/5 rounded-full overflow-hidden">
-                            <div className="absolute inset-0 bg-emerald-500/10 animate-pulse"></div>
-                            <div className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(16,185,129,0.4)]" style={{ width: `${stats.syllabusCompletion}%` }}>
-                                <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/50 blur-[1px]"></div>
-                            </div>
-                        </div>
-                        <p className="text-xs text-zinc-400 mt-3 font-medium flex items-center gap-1"><Zap size={12} className="text-amber-500" fill="currentColor" /><span>{stats.totalRevisions} total topic revisions recorded</span></p>
-                    </div>
-
-                    {/* 6. MINI STATS */}
+                    {/* MINI STATS */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
                             <Clock size={20} className="text-blue-500 mb-3" />
@@ -755,24 +737,8 @@ const App = () => {
                             <div className="text-xs text-zinc-400 dark:text-zinc-500 font-medium">Completion</div>
                         </div>
                     </div>
-                    {/* 2. SMART INSIGHTS */}
-                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
-                        <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <BrainCircuit size={16} className="text-amber-500" /> Productivity
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Peak Time</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white capitalize">{stats.peakTime || '-'}</span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-zinc-50 dark:bg-white/5 rounded-xl">
-                                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Top Subject</span>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-white truncate max-w-[120px]">{stats.bestSubject}</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* 7. WEEKLY CHART */}
+                    {/* WEEKLY CHART */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 transition-colors duration-300">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-2">
@@ -800,23 +766,24 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Right Column: Calendar (Order 1 on Mobile) */}
+                {/* Right Column: Calendar & Notes */}
                 <div className="lg:col-span-2 space-y-6 order-1 lg:order-2">
-                    {/* Countdown Card - Responsive Layout Fix - PURPLE THEME */}
-                    <div className="bg-gradient-to-br from-violet-600/20 via-fuchsia-500/10 to-purple-600/20 backdrop-blur-2xl p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-2xl shadow-purple-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-purple-500/20">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full -mr-20 -mt-20 blur-[70px] animate-pulse-fast"></div>
-                        <div className="relative z-10 flex flex-row items-center justify-between gap-4"> {/* Forced row layout for mobile */}
+                    
+                    {/* CRITICAL EXAM COUNTDOWN - RED THEME */}
+                    <div className="bg-gradient-to-br from-red-600/20 via-rose-500/10 to-orange-600/20 backdrop-blur-2xl p-4 sm:p-8 rounded-2xl sm:rounded-[2rem] shadow-2xl shadow-red-500/10 text-zinc-900 dark:text-white relative overflow-hidden border border-red-500/20">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/20 rounded-full -mr-20 -mt-20 blur-[70px] animate-pulse-slow"></div>
+                        <div className="relative z-10 flex flex-row items-center justify-between gap-4">
                             <div className="text-left">
                                 <div className="flex items-center justify-start gap-2 mb-1">
-                                    <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-zinc-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-widest border border-zinc-200 dark:border-white/10">Exam Date</span>
+                                    <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300 text-[10px] font-bold uppercase tracking-widest border border-red-200 dark:border-red-500/30">Exam Date</span>
                                     <span className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">Feb 15, 2026</span>
                                 </div>
                                 <h3 className="text-2xl sm:text-5xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400">
                                     {stats.daysRemaining} <span className="text-lg sm:text-2xl md:text-3xl font-medium text-zinc-500">days</span>
                                 </h3>
                             </div>
-                            <div className="bg-purple-200/10 p-3 sm:p-5 rounded-xl sm:rounded-3xl backdrop-blur-md border border-purple-500/30 shadow-[0_0_40px_rgba(168,85,247,0.2)] flex-shrink-0">
-                                <Hourglass className="text-purple-200 animate-pulse drop-shadow-[0_0_15px_rgba(192,132,252,0.8)] w-6 h-6 sm:w-10 sm:h-10" />
+                            <div className="bg-red-500/10 p-3 sm:p-5 rounded-xl sm:rounded-3xl backdrop-blur-md border border-red-500/30 shadow-[0_0_40px_rgba(239,68,68,0.2)] flex-shrink-0 animate-pulse">
+                                <AlertOctagon className="text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] w-6 h-6 sm:w-10 sm:h-10" />
                             </div>
                         </div>
                     </div>
@@ -853,6 +820,10 @@ const App = () => {
                                     const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
                                     const metTarget = hours >= userSettings.dailyTarget;
                                     const examPaper = UNI_EXAMS[dateKey];
+                                    const hasNotes = entry?.sessions?.some(s => s.notes) || entry?.notes;
+                                    
+                                    // Gate Exam Logic
+                                    const isGateExam = year === 2026 && month === 1 && day === 15; // Feb 15, 2026 (Month is 0-indexed)
 
                                     return (
                                         <div 
@@ -861,27 +832,46 @@ const App = () => {
                                             className={`
                                                 relative aspect-[3/4] sm:aspect-[4/5] rounded-2xl p-2 sm:p-3 transition-all cursor-pointer border
                                                 flex flex-col justify-between group overflow-hidden
-                                                ${getCellColor(hours)}
+                                                ${isGateExam ? 'bg-red-500/10 border-red-500 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : getCellColor(hours)}
                                                 ${isToday ? 'ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-black' : ''}
                                                 ${examPaper ? 'ring-2 ring-rose-500/50 ring-offset-0 dark:ring-offset-0' : ''} 
                                             `}
                                         >
-                                            <div className="flex justify-between items-start w-full">
-                                                <span className={`text-sm font-bold ${metTarget ? 'text-white/90' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}>{day}</span>
+                                            <div className="flex justify-between items-start w-full relative z-10">
+                                                <span className={`text-sm font-bold ${metTarget && !isGateExam ? 'text-white/90' : isGateExam ? 'text-red-500' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}>{day}</span>
                                                 
-                                                {/* Exam Badge */}
+                                                {/* University Exam Badge */}
                                                 {examPaper && (
                                                     <span className="absolute top-2 right-2 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white px-1.5 py-0.5 rounded shadow-sm z-10">
                                                         {examPaper}
                                                     </span>
                                                 )}
 
+                                                {/* GATE Exam Marker */}
+                                                {isGateExam && (
+                                                     <div className="absolute top-0 right-0 p-1">
+                                                        <Target size={16} className="text-red-600 animate-pulse" />
+                                                     </div>
+                                                )}
+
                                                 {/* Crown Icon */}
-                                                {metTarget && !examPaper && (
+                                                {metTarget && !examPaper && !isGateExam && (
                                                     <Crown size={16} className="text-yellow-300 fill-yellow-300 drop-shadow-md animate-pulse-slow absolute top-1 right-1 sm:static" />
                                                 )}
                                             </div>
-                                            {hours > 0 ? (
+                                            
+                                            {/* Note Indicator */}
+                                            {hasNotes && !isGateExam && (
+                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 group-hover:opacity-100 transition-opacity">
+                                                    <FileText size={24} className={metTarget ? 'text-white' : 'text-zinc-400'} />
+                                                </div>
+                                            )}
+
+                                            {isGateExam ? (
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-center mt-2 text-red-600 leading-tight">
+                                                    GATE<br/>EXAM
+                                                </div>
+                                            ) : hours > 0 ? (
                                                 <div>
                                                     <div className={`text-sm sm:text-lg font-bold ${metTarget ? 'text-white' : 'text-zinc-700 dark:text-zinc-200'}`}>{formatDuration(hours)}</div>
                                                     {entry.sessions && entry.sessions.length > 1 && (
@@ -899,16 +889,52 @@ const App = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* STRATEGY BOARD (NOTES) */}
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden group">
+                         {/* Subtle grid background for tactical look */}
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-amber-500 to-red-500"></div>
+
+                        <div className="relative z-10">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                                        <PenTool size={18} className="text-zinc-600 dark:text-zinc-300" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-zinc-900 dark:text-white leading-none">War Room Strategy</h3>
+                                        <p className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mt-0.5">Tactical Notes & Directives</p>
+                                    </div>
+                                </div>
+                                <div className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/10 px-2 py-1 rounded border border-red-100 dark:border-red-900/30 animate-pulse">
+                                    CONFIDENTIAL
+                                </div>
+                            </div>
+                            
+                            <textarea 
+                                value={scratchpad}
+                                onChange={(e) => handleSaveScratchpad(e.target.value)}
+                                placeholder="Write your master plan here. Formulas to memorize, topics to revisit, or strategic adjustments..."
+                                className="w-full h-40 bg-zinc-50 dark:bg-black/30 border border-zinc-200 dark:border-white/5 rounded-xl p-4 text-sm font-mono text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-amber-500 outline-none resize-none shadow-inner placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                            />
+                            
+                            <div className="flex justify-between items-center mt-3">
+                                <div className="flex gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-ping"></div>
+                                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">Live Sync</span>
+                                </div>
+                                <span className="text-[10px] text-zinc-400 italic">Auto-saving enabled</span>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
 
-        {/* VIEW: VIDEOS (Always Mounted to Prevent Iframe Refresh) */}
+        {/* VIEW: VIDEOS */}
         <div style={{ display: activeView === 'videos' ? 'block' : 'none', height: '100%' }}>
-            {/* NOTE: The internal playlist input logic is inside the `Videos` component. 
-                I have passed the `syllabus` and `progress` props so you can update 
-                Videos.jsx to handle the per-subject playlist logic there. 
-            */}
             <Videos 
                 db={db} 
                 user={user} 
@@ -919,17 +945,14 @@ const App = () => {
             />
         </div>
         
-        {/* VIEW: TIMER */}
+        {/* VIEW: TIMER (Unchanged) */}
         {activeView === 'timer' && (
             <div className={`w-full h-full flex flex-col justify-center items-center relative transition-all duration-700 ${isZenMode ? 'scale-100 fixed inset-0 z-[200] bg-black' : ''}`}>
-                {/* Background Deep Space Zen */}
                 <div className="absolute inset-0 bg-black">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-600/20 rounded-full blur-[150px] animate-pulse-slow"></div>
                     <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-900/30 rounded-full blur-[150px]"></div>
                 </div>
-                
                 <div className={`w-full max-w-2xl p-4 sm:p-12 text-center relative z-10 transition-all duration-500 flex flex-col items-center justify-center h-full`}>
-                    
                     {!isZenMode && (
                         <div className="mb-8 sm:mb-12 w-full flex flex-col items-center">
                             <label className="text-xs font-bold text-amber-500/80 uppercase tracking-[0.2em] mb-4 block">Focus Session</label>
@@ -943,13 +966,9 @@ const App = () => {
                             </div>
                         </div>
                     )}
-
-                    {/* Responsive Text Size using vw units for Zen Mode */}
                     <div className={`font-black font-mono text-white tracking-tighter mb-8 sm:mb-16 tabular-nums transition-all duration-700 ${isZenMode ? 'text-[18vw] sm:text-[12rem] md:text-[14rem] drop-shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'text-5xl sm:text-7xl md:text-9xl drop-shadow-2xl'}`}>
                         {formatTimer(timerSeconds)}
                     </div>
-
-                    {/* Zen Mode Toggle */}
                     {isTimerRunning && (
                         <button 
                             onClick={toggleFullscreen}
@@ -958,7 +977,6 @@ const App = () => {
                             {isZenMode ? <Minimize size={24} /> : <Maximize size={24} />}
                         </button>
                     )}
-
                     <div className="flex items-center justify-center gap-8 relative z-10">
                         {!isTimerRunning ? (
                             <button 
@@ -975,7 +993,6 @@ const App = () => {
                                 <Pause size={36} fill="currentColor" />
                             </button>
                         )}
-
                         <button 
                             onClick={handleTimerFinish}
                             disabled={timerSeconds === 0}
@@ -988,7 +1005,7 @@ const App = () => {
             </div>
         )}
 
-        {/* VIEW: SYLLABUS */}
+        {/* VIEW: SYLLABUS (Unchanged) */}
         <div style={{ display: activeView === 'syllabus' ? 'block' : 'none' }}>
             <div className="max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
@@ -1001,7 +1018,6 @@ const App = () => {
                         <div className="text-2xl font-black text-amber-600 dark:text-amber-400">{stats.syllabusCompletion}%</div>
                     </div>
                 </div>
-
                 <div className="space-y-6">
                     {Object.entries(SYLLABUS_DATA[userSettings.stream] || {}).map(([subject, data]) => {
                         const topics = data.topics || [];
@@ -1012,7 +1028,6 @@ const App = () => {
                         let earnedWeight = 0;
                         topics.forEach(t => { if (syllabusProgress[subject]?.[t]?.done) earnedWeight += weightPerTopic; });
                         const percent = totalSubWeight > 0 ? Math.round((earnedWeight/totalSubWeight)*100) : 0;
-
                         return (
                             <div key={subject} className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 overflow-hidden transition-all duration-300">
                                 <div 
@@ -1036,7 +1051,6 @@ const App = () => {
                                         {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                     </div>
                                 </div>
-
                                 {isExpanded && (
                                     <div className="border-t border-zinc-100 dark:border-white/5 bg-zinc-50/50 dark:bg-black/20 p-4 space-y-2">
                                         {topics.map(topic => {
@@ -1049,7 +1063,6 @@ const App = () => {
                                                         </div>
                                                         <span className={`text-sm font-medium transition-colors ${tData.done ? 'text-zinc-400 line-through decoration-zinc-400/50' : 'text-zinc-700 dark:text-zinc-200'}`}>{topic}</span>
                                                     </div>
-                                                    
                                                     <div className="flex items-center gap-3 pl-4 border-l border-zinc-200 dark:border-white/10 ml-4">
                                                         <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Rev</span>
                                                         <div className="flex items-center gap-1 bg-white dark:bg-zinc-800 rounded-lg p-1 border border-zinc-200 dark:border-white/10">
@@ -1093,7 +1106,7 @@ const App = () => {
                 <button onClick={() => setModalMode('add')} className={`flex-1 py-4 text-sm font-bold text-center ${modalMode === 'add' ? 'text-amber-500 bg-zinc-50 dark:bg-white/5' : 'text-zinc-400'}`}>Add Session</button>
             </div>
 
-            {/* Left Column: Day Overview (NOW WITH SCROLLER FIX) */}
+            {/* Left Column: Day Overview */}
             <div className={`w-full md:w-1/2 bg-zinc-50/50 dark:bg-black/20 p-6 md:p-8 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-white/5 flex flex-col h-full overflow-hidden ${modalMode === 'view' ? 'flex' : 'hidden'}`}>
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -1106,7 +1119,7 @@ const App = () => {
                     </div>
                 </div>
 
-                {/* Mobile Close Button (Only visible on mobile view tab) */}
+                {/* Mobile Close Button */}
                 <div className="flex justify-end mb-2 md:hidden">
                     <button onClick={() => setIsModalOpen(false)} className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-500 hover:bg-zinc-200"><X size={18}/></button>
                 </div>
@@ -1114,17 +1127,26 @@ const App = () => {
                 <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar min-h-0">
                     {getSelectedSessions().length > 0 ? (
                         getSelectedSessions().map((s, idx) => (
-                            <div key={s.id || idx} className="flex items-center justify-between bg-white dark:bg-white/5 p-4 rounded-2xl border border-zinc-100 dark:border-white/5 hover:border-amber-500/30 dark:hover:border-amber-500/30 transition-all group shadow-sm">
-                                <div>
-                                    <div className="font-bold text-zinc-800 dark:text-zinc-100 text-base mb-1">{s.subject}</div>
-                                    <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-2">
-                                        <span className="text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded-md">{formatDuration(s.hours)}</span>
-                                        {s.timestamp && <span className="text-zinc-400">{formatTimeOnly(s.timestamp)}</span>}
+                            <div key={s.id || idx} className="flex flex-col bg-white dark:bg-white/5 p-4 rounded-2xl border border-zinc-100 dark:border-white/5 hover:border-amber-500/30 dark:hover:border-amber-500/30 transition-all group shadow-sm">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                        <div className="font-bold text-zinc-800 dark:text-zinc-100 text-base">{s.subject}</div>
+                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-2">
+                                            <span className="text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded-md">{formatDuration(s.hours)}</span>
+                                            {s.timestamp && <span className="text-zinc-400">{formatTimeOnly(s.timestamp)}</span>}
+                                        </div>
                                     </div>
+                                    <button onClick={() => setDeleteConfirm(s.id)} className="text-zinc-300 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100">
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
-                                <button onClick={() => setDeleteConfirm(s.id)} className="text-zinc-300 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100">
-                                    <Trash2 size={16} />
-                                </button>
+                                {/* Notes Display in Modal */}
+                                {s.notes && (
+                                    <div className="bg-zinc-50 dark:bg-black/30 p-2 rounded-lg text-xs text-zinc-600 dark:text-zinc-300 italic flex gap-2">
+                                        <StickyNote size={14} className="flex-shrink-0 mt-0.5 text-zinc-400"/>
+                                        {s.notes}
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -1135,7 +1157,7 @@ const App = () => {
                     )}
                 </div>
 
-                {/* Desktop: Add Session Button (Moves to Right Pane) */}
+                {/* Desktop: Add Session Button */}
                 <div className="mt-6 md:hidden">
                      <button onClick={() => setModalMode('add')} className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg">
                         <Plus size={18} /> Add Session
@@ -1179,8 +1201,9 @@ const App = () => {
                     </div>
                     
                     <div>
-                        <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Notes</label>
-                        <textarea value={inputNotes} onChange={(e) => setInputNotes(e.target.value)} placeholder="What did you achieve?" rows={2} className="w-full p-4 bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none transition-all resize-none text-zinc-700 dark:text-zinc-200 text-sm placeholder:text-zinc-400" />
+                        <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Notes & Events</label>
+                        <textarea value={inputNotes} onChange={(e) => setInputNotes(e.target.value)} placeholder="Topics covered, formulas memorized, or event details..." rows={2} className="w-full p-4 bg-zinc-50 dark:bg-black/40 border border-zinc-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none transition-all resize-none text-zinc-700 dark:text-zinc-200 text-sm placeholder:text-zinc-400" />
+                        <p className="text-[10px] text-zinc-400 mt-1">Adding notes will mark this date with a document icon on the calendar.</p>
                     </div>
                     
                     <div className="mt-auto flex gap-3">
@@ -1212,7 +1235,7 @@ const App = () => {
         </div>
       )}
 
-      {/* Settings Modal */}
+      {/* Settings Modal (Unchanged content) */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-end sm:justify-center p-4 sm:p-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white dark:bg-zinc-900 w-full sm:w-96 rounded-3xl sm:rounded-[2rem] shadow-2xl p-6 border border-zinc-200 dark:border-white/10 animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
@@ -1224,7 +1247,7 @@ const App = () => {
                 </div>
 
                 <div className="space-y-6">
-                    {/* Profile Section (NEW) */}
+                    {/* Profile Section */}
                     <div>
                         <label className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3 block">Profile</label>
                         <div className="bg-zinc-50 dark:bg-black/20 p-4 rounded-2xl border border-zinc-100 dark:border-white/5 flex items-center gap-3 mb-3">
