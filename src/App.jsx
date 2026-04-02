@@ -36,7 +36,8 @@ import {
   User,
   BrainCircuit,
   Plus,
-  Youtube
+  Youtube,
+  Headphones
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -75,15 +76,9 @@ const appId = "my-study-tracker";
 
 // --- Constants & Helpers ---
 const TARGET_HOURS = 8;
-const EXAM_DATE = new Date('2026-02-15');
+const EXAM_DATE = new Date('2027-02-07');
 
-// University Exam Schedule
-const UNI_EXAMS = {
-  '2025-12-12': 'ML',
-  '2025-12-15': 'DMV',
-  '2025-12-19': 'EAC',
-  '2025-12-22': 'UI/UX'
-};
+
 
 // Detailed Syllabus Data based on GATE 2026 PDF
 const SYLLABUS_DATA = {
@@ -173,6 +168,47 @@ const SYLLABUS_DATA = {
     "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] },
     "Engineering Math": { weight: 10, topics: ["Linear Algebra", "Calculus", "Probability", "Discrete Math"] },
     "Other": { weight: 0, topics: ["Mock Tests", "Revision", "Miscellaneous"] }
+  },
+  ME: {
+    "Applied Mechanics & Design": { weight: 28, topics: ["Engineering Mechanics", "Mechanics of Materials", "Theory of Machines", "Vibrations", "Machine Design"] },
+    "Fluid Mechanics & Thermal": { weight: 32, topics: ["Fluid Mechanics", "Thermodynamics", "Heat Transfer", "Power Engineering", "IC Engines", "Refrigeration"] },
+    "Materials & Manufacturing": { weight: 12, topics: ["Engineering Materials", "Casting, Forming & Joining", "Machining", "Metrology", "CIM", "Operations Research"] },
+    "Engineering Mathematics": { weight: 13, topics: ["Linear Algebra", "Calculus", "Differential Equations", "Complex Variables", "Probability", "Numerical Methods"] },
+    "General Aptitude": { weight: 15, topics: ["Verbal Ability", "Quantitative Aptitude", "Analytical Aptitude", "Spatial Aptitude"] }
+  },
+  EE: {
+    "Electrical Machines": { weight: 11, topics: ["Single Phase Transformers", "Three Phase", "DC Machines", "Induction Machines", "Synchronous Machines"] },
+    "Power Systems": { weight: 11, topics: ["Power Generation", "Transmission Lines", "Fault Analysis", "Stability", "Protection"] },
+    "Analog & Digital Electronics": { weight: 11, topics: ["Diode Circuits", "BJT & MOSFET", "Op-Amps", "Combinational Logic", "Sequential Logic", "Microprocessors"] },
+    "Power Electronics": { weight: 9, topics: ["Semiconductor Devices", "DC-DC Converters", "Inverters", "AC-DC Converters"] },
+    "Control Systems": { weight: 9, topics: ["Block Diagrams", "Time Domain", "Root Locus", "Frequency Domain", "State Space"] },
+    "Signals & Systems": { weight: 8, topics: ["LTI Systems", "Laplace Transform", "Z-Transform", "Fourier Transform"] },
+    "Network Theory": { weight: 8, topics: ["Network Theorems", "Transient Analysis", "Two-Port Networks", "AC Circuits"] },
+    "Measurements": { weight: 5, topics: ["Error Analysis", "Bridges", "Oscilloscopes", "Transducers"] },
+    "EMFT": { weight: 3, topics: ["Maxwell's Equations", "Electrostatics", "Magnetostatics", "Plane Waves"] },
+    "Engineering Mathematics": { weight: 15, topics: ["Linear Algebra", "Calculus", "Differential Equations", "Probability"] },
+    "General Aptitude": { weight: 10, topics: ["Verbal", "Quantitative", "Analytical"] }
+  },
+  EC: {
+    "Networks, Signals & Systems": { weight: 14, topics: ["Network Methods", "Continuous Signals", "Discrete Signals", "LTI Systems"] },
+    "Communications": { weight: 12, topics: ["Random Processes", "Analog Comms", "Digital Comms", "Information Theory", "Error Control"] },
+    "Analog Circuits": { weight: 11, topics: ["Diode Circuits", "BJT Circuits", "MOSFET Circuits", "Op-Amps"] },
+    "Digital Circuits": { weight: 9, topics: ["Boolean Algebra", "Combinational", "Sequential", "Data Converters", "Memories"] },
+    "Electronic Devices": { weight: 9, topics: ["Energy Bands", "Carrier Transport", "P-N Junction", "Zener Diode", "BJT", "MOSFET"] },
+    "Control Systems": { weight: 9, topics: ["Control Components", "Feedback Principles", "Compensators", "State Space"] },
+    "Electromagnetics": { weight: 8, topics: ["Maxwell's Equations", "Plane Waves", "Transmission Lines", "Waveguides", "Antennas"] },
+    "Engineering Mathematics": { weight: 13, topics: ["Linear Algebra", "Calculus", "Differential Equations", "Vector Analysis", "Complex Analysis", "Probability"] },
+    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical", "Spatial"] }
+  },
+  CE: {
+    "Structural Engineering": { weight: 22, topics: ["Engineering Mechanics", "Solid Mechanics", "Structural Analysis", "Construction Materials", "Concrete Structures", "Steel Structures"] },
+    "Geotechnical Engineering": { weight: 14, topics: ["Soil Mechanics", "Foundation Engineering"] },
+    "Water Resources Engineering": { weight: 12, topics: ["Fluid Mechanics", "Hydraulics", "Hydrology", "Irrigation"] },
+    "Environmental Engineering": { weight: 10, topics: ["Water Quality", "Wastewater Treatment", "Air Pollution", "Municipal Solid Waste"] },
+    "Transportation Engineering": { weight: 8, topics: ["Transportation Infrastructure", "Highway Pavements", "Traffic Engineering"] },
+    "Geomatics Engineering": { weight: 6, topics: ["Surveying", "Photogrammetry", "Remote Sensing"] },
+    "Engineering Mathematics": { weight: 13, topics: ["Linear Algebra", "Calculus", "Differential Equations", "Probability", "Numerical Methods"] },
+    "General Aptitude": { weight: 15, topics: ["Verbal", "Quant", "Analytical"] }
   },
   // Fallback structure for other streams
   Other: { "General Subject": { weight: 100, topics: ["Topic 1", "Topic 2"] } }
@@ -271,6 +307,7 @@ const App = () => {
   const [inputNotes, setInputNotes] = useState('');
   const [inputSubject, setInputSubject] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [playLoFi, setPlayLoFi] = useState(false);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -295,7 +332,7 @@ const App = () => {
         document.title = `${formatTimer(currentDiff)} - Focus`;
       }, 1000);
     } else {
-        document.title = "GATE 2026 Tracker";
+        document.title = "GATE 2027 Tracker";
         if(!isTimerRunning) {
             localStorage.removeItem('timerStart');
             localStorage.removeItem('isTimerRunning');
@@ -384,10 +421,26 @@ const App = () => {
     if (!user) return;
     const newProgress = { ...syllabusProgress };
     if (!newProgress[subject]) newProgress[subject] = {};
-    if (!newProgress[subject][topic]) newProgress[subject][topic] = { done: false, rev: 0 };
-    if (field === 'done') newProgress[subject][topic].done = !newProgress[subject][topic].done;
-    else if (field === 'rev_inc') newProgress[subject][topic].rev = (newProgress[subject][topic].rev || 0) + 1;
+    if (!newProgress[subject][topic]) newProgress[subject][topic] = { done: false, status: 'none', rev: 0 };
+    if (!newProgress[subject][topic].status) newProgress[subject][topic].status = newProgress[subject][topic].done ? 'strong' : 'none';
+
+    if (field === 'cycle_status') {
+        const statuses = ['none', 'weak', 'average', 'strong'];
+        const current = newProgress[subject][topic].status || 'none';
+        const next = statuses[(statuses.indexOf(current) + 1) % statuses.length];
+        newProgress[subject][topic].status = next;
+        newProgress[subject][topic].done = (next !== 'none');
+    } else if (field === 'done') {
+        newProgress[subject][topic].done = !newProgress[subject][topic].done;
+        if (newProgress[subject][topic].done && newProgress[subject][topic].status === 'none') {
+            newProgress[subject][topic].status = 'strong';
+        } else if (!newProgress[subject][topic].done) {
+            newProgress[subject][topic].status = 'none';
+        }
+    } else if (field === 'rev_inc') newProgress[subject][topic].rev = (newProgress[subject][topic].rev || 0) + 1;
     else if (field === 'rev_dec') newProgress[subject][topic].rev = Math.max(0, (newProgress[subject][topic].rev || 0) - 1);
+    // Record lastStudied for spaced repetition
+    if (newProgress[subject][topic].done) newProgress[subject][topic].lastStudied = new Date().toISOString();
     setSyllabusProgress(newProgress);
     try { const sylRef = doc(db, 'artifacts', appId, 'users', user.uid, 'syllabus', 'progress'); await setDoc(sylRef, newProgress); } catch (err) { console.error(err); }
   };
@@ -528,29 +581,93 @@ const App = () => {
     const examDiff = EXAM_DATE.getTime() - today.getTime(); 
     const daysRemaining = Math.ceil(examDiff / (1000 * 60 * 60 * 24));
 
-    // Weighted Syllabus
+    // Weighted Syllabus & Confidence
     let totalWeightedScore = 0; let achievedWeightedScore = 0; let totalRevisions = 0;
     const streamData = SYLLABUS_DATA[userSettings.stream] || {};
-    const allSubjectTotals = {}; // Accumulate totals for syllabus view
+    const confidenceFunnel = { weak: 0, average: 0, strong: 0, unseen: 0 };
+    const revisionDue = [];
 
-    // We must iterate through LOGGED hours to calculate subject progress properly if needed? 
-    // Actually, the prompt requested "Hours spent on each subject in front of each subject".
-    // We already have `subjectTotals` from above.
-    
     Object.entries(streamData).forEach(([subject, data]) => {
         const weight = data.weight || 0; const topics = data.topics || [];
         const topicWeight = weight / (topics.length || 1);
         totalWeightedScore += weight;
         topics.forEach(topic => {
             const prog = syllabusProgress[subject]?.[topic];
+            const status = prog?.status || (prog?.done ? 'strong' : 'none');
+            if (status === 'none') confidenceFunnel.unseen++;
+            else if (status === 'weak') { confidenceFunnel.weak++; revisionDue.push({ subject, topic }); }
+            else if (status === 'average') confidenceFunnel.average++;
+            else if (status === 'strong') confidenceFunnel.strong++;
             if (prog?.done) achievedWeightedScore += topicWeight;
             if (prog?.rev) totalRevisions += prog.rev;
         });
     });
     const syllabusCompletion = totalWeightedScore > 0 ? Math.round((achievedWeightedScore / totalWeightedScore) * 100) : 0;
 
-    return { monthlyTotal: parseFloat(monthlyTotal.toFixed(1)), avgDaily: daysStudied > 0 ? parseFloat((monthlyTotal / daysStudied).toFixed(1)) : 0, completionRate: daysInMonth > 0 ? Math.round((daysTargetMet / new Date().getDate()) * 100) : 0, streak, weeklyData, last7DaysTotal: parseFloat(last7DaysTotal.toFixed(1)), sortedSubjects, daysRemaining, syllabusCompletion, totalRevisions, todayHours, todayBreakdown, peakTime, bestSubject, subjectTotals };
+    // Projected Completion Date
+    const avgDaily = daysStudied > 0 ? parseFloat((monthlyTotal / daysStudied).toFixed(1)) : 0;
+    let projectedDate = null;
+    let paceStatus = 'No Data';
+    if (syllabusCompletion > 0 && monthlyTotal > 0 && avgDaily > 0) {
+        const hoursPerPct = monthlyTotal / syllabusCompletion;
+        const remaining = Math.max(0, 100 - syllabusCompletion);
+        const daysNeeded = Math.ceil((remaining * hoursPerPct) / avgDaily);
+        projectedDate = new Date(today);
+        projectedDate.setDate(projectedDate.getDate() + daysNeeded);
+        if (projectedDate <= EXAM_DATE) paceStatus = 'On Track';
+        else paceStatus = Math.floor((projectedDate - EXAM_DATE) / 86400000) > 30 ? 'Critical' : 'Falling Behind';
+    }
+
+    const totalTimeLogged = Object.values(timeOfDay).reduce((a, b) => a + b, 0);
+    const timeOfDayPercent = {
+        morning: totalTimeLogged ? Math.round((timeOfDay.morning / totalTimeLogged) * 100) : 0,
+        afternoon: totalTimeLogged ? Math.round((timeOfDay.afternoon / totalTimeLogged) * 100) : 0,
+        evening: totalTimeLogged ? Math.round((timeOfDay.evening / totalTimeLogged) * 100) : 0,
+        night: totalTimeLogged ? Math.round((timeOfDay.night / totalTimeLogged) * 100) : 0,
+    };
+
+    // === EXAM READINESS SCORE (0-100) ===
+    const totalTopics = confidenceFunnel.weak + confidenceFunnel.average + confidenceFunnel.strong + confidenceFunnel.unseen;
+    const confidenceScore = totalTopics > 0 ? Math.round(((confidenceFunnel.strong * 1 + confidenceFunnel.average * 0.5 + confidenceFunnel.weak * 0.1) / totalTopics) * 100) : 0;
+    const streakScore = Math.min(100, streak * 10);
+    const revisionScore = totalTopics > 0 ? Math.min(100, Math.round((totalRevisions / totalTopics) * 100)) : 0;
+    const readinessScore = Math.round(syllabusCompletion * 0.4 + confidenceScore * 0.25 + streakScore * 0.15 + revisionScore * 0.2);
+
+    // === SUBJECT RADAR DATA ===
+    const radarData = Object.entries(streamData).map(([subject, data]) => {
+        const topics = data.topics || [];
+        let strong = 0;
+        topics.forEach(t => {
+            const p = syllabusProgress[subject]?.[t];
+            const s = p?.status || (p?.done ? 'strong' : 'none');
+            if (s === 'strong') strong++;
+            else if (s === 'average') strong += 0.5;
+            else if (s === 'weak') strong += 0.15;
+        });
+        return { subject: subject.length > 14 ? subject.substring(0, 12) + '..' : subject, value: topics.length > 0 ? Math.round((strong / topics.length) * 100) : 0 };
+    }).filter(d => d.subject !== 'Other');
+
+    // === SPACED REPETITION (topics due for review) ===
+    const spacedRepDue = [];
+    const intervals = [1, 3, 7, 14, 30]; // days
+    Object.entries(streamData).forEach(([subject, data]) => {
+        (data.topics || []).forEach(topic => {
+            const prog = syllabusProgress[subject]?.[topic];
+            if (prog?.done && prog?.lastStudied) {
+                const daysSince = Math.floor((today - new Date(prog.lastStudied)) / 86400000);
+                const currentInterval = intervals.find(i => daysSince < i) || 30;
+                const nextReview = currentInterval;
+                if (daysSince >= nextReview) {
+                    spacedRepDue.push({ subject, topic, daysSince, urgency: daysSince > 14 ? 'high' : daysSince > 7 ? 'medium' : 'low' });
+                }
+            }
+        });
+    });
+    spacedRepDue.sort((a, b) => b.daysSince - a.daysSince);
+
+    return { monthlyTotal: parseFloat(monthlyTotal.toFixed(1)), avgDaily, completionRate: daysInMonth > 0 ? Math.round((daysTargetMet / new Date().getDate()) * 100) : 0, streak, weeklyData, last7DaysTotal: parseFloat(last7DaysTotal.toFixed(1)), sortedSubjects, daysRemaining, syllabusCompletion, totalRevisions, todayHours, todayBreakdown, peakTime, bestSubject, subjectTotals, confidenceFunnel, revisionDue, projectedDate, paceStatus, timeOfDayPercent, readinessScore, radarData, spacedRepDue };
   }, [entries, year, month, daysInMonth, userSettings, syllabusProgress]);
+
 
   const getCellColor = (hours) => {
     const target = userSettings.dailyTarget;
@@ -578,7 +695,7 @@ const App = () => {
           <div className="bg-amber-100 dark:bg-amber-500/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-amber-600 dark:text-amber-400 ring-4 ring-amber-50 dark:ring-amber-900/20 relative z-10">
             <GraduationCap size={32} />
           </div>
-          <h1 className="text-3xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight relative z-10">GATE<span className="text-amber-500 dark:text-amber-400">2026</span></h1>
+          <h1 className="text-3xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight relative z-10">GATE<span className="text-amber-500 dark:text-amber-400">2027</span></h1>
           <p className="text-zinc-500 dark:text-zinc-400 mb-8 relative z-10">Master your preparation with precision analytics.</p>
           <button onClick={handleGoogleLogin} className="w-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg dark:shadow-white/10 relative z-10">
             <LogIn size={20} /> Sign in with Google
@@ -656,7 +773,7 @@ const App = () => {
         <div style={{ display: activeView === 'dashboard' ? 'block' : 'none' }}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Left Column */}
-                <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-28 lg:h-fit order-2 lg:order-1">
+                <div className="space-y-6 lg:col-span-1 order-2 lg:order-1">
 
                     {/* 4. STREAK CARD */}
                     <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
@@ -739,8 +856,28 @@ const App = () => {
                                 <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/50 blur-[1px]"></div>
                             </div>
                         </div>
-                        <p className="text-xs text-zinc-400 mt-3 font-medium flex items-center gap-1"><Zap size={12} className="text-amber-500" fill="currentColor" /><span>{stats.totalRevisions} total topic revisions recorded</span></p>
+                        <div className="flex justify-between items-center text-xs font-medium border-t border-zinc-100 dark:border-white/5 pt-3 mt-3">
+                            <span className="text-zinc-500 dark:text-zinc-400">Pace: <span className={stats.paceStatus === 'Critical' ? 'text-rose-500 font-bold' : stats.paceStatus === 'Falling Behind' ? 'text-amber-500 font-bold' : 'text-emerald-500 font-bold'}>{stats.paceStatus}</span></span>
+                            <span className="text-zinc-900 dark:text-white font-bold" title="Projected completion">ETA: {stats.projectedDate ? stats.projectedDate.toLocaleDateString() : '—'}</span>
+                        </div>
                     </div>
+
+                    {/* SMART REVISION ENGINE */}
+                    {stats.revisionDue && stats.revisionDue.length > 0 && (
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-rose-200 dark:border-rose-900/30">
+                        <h3 className="text-sm font-bold text-rose-500 dark:text-rose-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <AlertTriangle size={16} /> Needs Revision ({stats.revisionDue.length})
+                        </h3>
+                        <div className="space-y-2 max-h-44 overflow-y-auto pr-1" style={{scrollbarWidth:'thin'}}>
+                            {stats.revisionDue.slice(0, 10).map((t, idx) => (
+                                <div key={idx} className="flex justify-between items-center text-xs p-3 bg-rose-50 dark:bg-rose-500/10 rounded-xl">
+                                    <span className="font-bold text-rose-800 dark:text-rose-300 truncate max-w-[160px]" title={t.topic}>{t.topic}</span>
+                                    <span className="text-[10px] text-rose-600 dark:text-rose-400 uppercase font-black px-2 py-0.5 rounded bg-white dark:bg-rose-900/50 border border-rose-200 dark:border-transparent">Weak</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    )}
 
                     {/* 6. MINI STATS */}
                     <div className="grid grid-cols-2 gap-4">
@@ -797,6 +934,7 @@ const App = () => {
                                 </div>
                             ))}
                         </div>
+
                     </div>
                 </div>
 
@@ -809,7 +947,7 @@ const App = () => {
                             <div className="text-left">
                                 <div className="flex items-center justify-start gap-2 mb-1">
                                     <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-zinc-100 dark:bg-white/10 text-[10px] font-bold uppercase tracking-widest border border-zinc-200 dark:border-white/10">Exam Date</span>
-                                    <span className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">Feb 15, 2026</span>
+                                    <span className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm font-medium">Feb 7, 2027</span>
                                 </div>
                                 <h3 className="text-2xl sm:text-5xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400">
                                     {stats.daysRemaining} <span className="text-lg sm:text-2xl md:text-3xl font-medium text-zinc-500">days</span>
@@ -852,7 +990,7 @@ const App = () => {
                                     const hours = entry?.hours || 0;
                                     const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
                                     const metTarget = hours >= userSettings.dailyTarget;
-                                    const examPaper = UNI_EXAMS[dateKey];
+                                    const examPaper = null;
 
                                     return (
                                         <div 
@@ -899,6 +1037,146 @@ const App = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* CONSISTENCY HEATMAP (GitHub style) */}
+                    <div className="bg-white dark:bg-zinc-900/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 hidden sm:block">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Zap size={16} className="text-amber-500" />
+                            <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">365-Day Consistency</h3>
+                        </div>
+                        <div className="w-full overflow-x-auto pb-2" style={{scrollbarWidth:'thin'}}>
+                            <div className="inline-flex gap-[3px] select-none">
+                                {Array.from({length: 53}).map((_, col) => (
+                                    <div key={col} className="flex flex-col gap-[3px]">
+                                        {Array.from({length: 7}).map((_, row) => {
+                                            const daysAgo = (52 - col) * 7 + row;
+                                            if (daysAgo >= 365) return <div key={row} className="w-3 h-3" />;
+                                            const d = new Date();
+                                            d.setDate(d.getDate() - daysAgo);
+                                            const key = formatDateKey(d.getFullYear(), d.getMonth(), d.getDate());
+                                            const hours = entries[key] ? entries[key].hours : 0;
+                                            let color = 'bg-zinc-100 dark:bg-zinc-800/50';
+                                            if (hours > 0 && hours < userSettings.dailyTarget / 2) color = 'bg-amber-200 dark:bg-amber-900/40';
+                                            else if (hours >= userSettings.dailyTarget / 2 && hours < userSettings.dailyTarget) color = 'bg-amber-400 dark:bg-amber-600/60';
+                                            else if (hours >= userSettings.dailyTarget) color = 'bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.4)]';
+                                            return (
+                                                <div key={row}
+                                                    className={`w-3 h-3 rounded-[2px] ${color} transition-colors cursor-pointer hover:ring-1 hover:ring-zinc-400`}
+                                                    title={`${d.toDateString()}: ${hours.toFixed(1)} hrs`}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 justify-end text-[10px] text-zinc-400 font-bold">
+                            <span>Less</span>
+                            <div className="w-3 h-3 rounded-[2px] bg-zinc-100 dark:bg-zinc-800/50" />
+                            <div className="w-3 h-3 rounded-[2px] bg-amber-200 dark:bg-amber-900/40" />
+                            <div className="w-3 h-3 rounded-[2px] bg-amber-400 dark:bg-amber-600/60" />
+                            <div className="w-3 h-3 rounded-[2px] bg-amber-500" />
+                            <span>More</span>
+                        </div>
+                    </div>
+
+                    {/* ANALYTICS ROW (side by side on desktop) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {/* EXAM READINESS SCORE */}
+                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 text-center">
+                            <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center justify-center gap-2">
+                                <Target size={16} className="text-amber-500" /> Exam Readiness
+                            </h3>
+                            <div className="relative w-28 h-28 mx-auto mb-3">
+                                <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                                    <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8" className="text-zinc-100 dark:text-zinc-800" />
+                                    <circle cx="60" cy="60" r="52" fill="none" strokeWidth="8" strokeLinecap="round"
+                                        strokeDasharray={`${stats.readinessScore * 3.267} 326.7`}
+                                        className={stats.readinessScore >= 70 ? 'text-emerald-500' : stats.readinessScore >= 40 ? 'text-amber-500' : 'text-rose-500'}
+                                        stroke="currentColor" style={{transition: 'stroke-dasharray 1s ease'}}
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className="text-3xl font-black text-zinc-900 dark:text-white">{stats.readinessScore}</span>
+                                    <span className="text-[10px] font-bold text-zinc-400 uppercase">/ 100</span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-4 gap-1 text-[10px] font-bold">
+                                <div className="text-center"><div className="text-emerald-500">{stats.confidenceFunnel.strong}</div><div className="text-zinc-400">Strong</div></div>
+                                <div className="text-center"><div className="text-amber-500">{stats.confidenceFunnel.average}</div><div className="text-zinc-400">Avg</div></div>
+                                <div className="text-center"><div className="text-rose-500">{stats.confidenceFunnel.weak}</div><div className="text-zinc-400">Weak</div></div>
+                                <div className="text-center"><div className="text-zinc-500">{stats.confidenceFunnel.unseen}</div><div className="text-zinc-400">New</div></div>
+                            </div>
+                        </div>
+
+                        {/* SUBJECT RADAR CHART */}
+                        {stats.radarData.length >= 3 ? (
+                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10">
+                            <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <BrainCircuit size={16} className="text-indigo-500" /> Subject Balance
+                            </h3>
+                            <div className="flex justify-center">
+                                <svg viewBox="0 0 300 300" className="w-full max-w-[220px]">
+                                    {[20, 40, 60, 80, 100].map(ring => (
+                                        <polygon key={ring} fill="none" stroke="currentColor" strokeWidth="0.5" className="text-zinc-200 dark:text-zinc-700"
+                                            points={stats.radarData.map((_, i) => {
+                                                const angle = (Math.PI * 2 * i / stats.radarData.length) - Math.PI / 2;
+                                                const r = (ring / 100) * 110;
+                                                return `${150 + r * Math.cos(angle)},${150 + r * Math.sin(angle)}`;
+                                            }).join(' ')}
+                                        />
+                                    ))}
+                                    {stats.radarData.map((_, i) => {
+                                        const angle = (Math.PI * 2 * i / stats.radarData.length) - Math.PI / 2;
+                                        return <line key={i} x1="150" y1="150" x2={150 + 110 * Math.cos(angle)} y2={150 + 110 * Math.sin(angle)} stroke="currentColor" strokeWidth="0.5" className="text-zinc-200 dark:text-zinc-700" />;
+                                    })}
+                                    <polygon fill="rgba(99,102,241,0.15)" stroke="rgb(99,102,241)" strokeWidth="2"
+                                        points={stats.radarData.map((d, i) => {
+                                            const angle = (Math.PI * 2 * i / stats.radarData.length) - Math.PI / 2;
+                                            const r = (d.value / 100) * 110;
+                                            return `${150 + r * Math.cos(angle)},${150 + r * Math.sin(angle)}`;
+                                        }).join(' ')}
+                                    />
+                                    {stats.radarData.map((d, i) => {
+                                        const angle = (Math.PI * 2 * i / stats.radarData.length) - Math.PI / 2;
+                                        const x = 150 + 130 * Math.cos(angle);
+                                        const y = 150 + 130 * Math.sin(angle);
+                                        return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="middle" className="fill-zinc-500 dark:fill-zinc-400" style={{fontSize: '9px', fontWeight: 700}}>{d.subject}</text>;
+                                    })}
+                                </svg>
+                            </div>
+                        </div>
+                        ) : (
+                        <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-white/10 flex items-center justify-center">
+                            <p className="text-sm text-zinc-400 italic">Mark topics to see your radar chart</p>
+                        </div>
+                        )}
+                    </div>
+
+                    {/* SPACED REPETITION (full width under analytics) */}
+                    {stats.spacedRepDue.length > 0 && (
+                    <div className="bg-white dark:bg-zinc-900/50 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-indigo-200 dark:border-indigo-900/30">
+                        <h3 className="text-sm font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <RefreshCw size={16} /> Review Due ({stats.spacedRepDue.length})
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1" style={{scrollbarWidth:'thin'}}>
+                            {stats.spacedRepDue.slice(0, 8).map((t, idx) => (
+                                <div key={idx} className="flex justify-between items-center text-xs p-3 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl">
+                                    <div className="flex-1 min-w-0">
+                                        <span className="font-bold text-indigo-800 dark:text-indigo-300 truncate block" title={t.topic}>{t.topic}</span>
+                                        <span className="text-[10px] text-indigo-500/70">{t.subject}</span>
+                                    </div>
+                                    <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded shrink-0 ml-2 ${
+                                        t.urgency === 'high' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-400' :
+                                        t.urgency === 'medium' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400' :
+                                        'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400'
+                                    }`}>{t.daysSince}d ago</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    )}
+
                 </div>
             </div>
         </div>
@@ -922,6 +1200,16 @@ const App = () => {
         {/* VIEW: TIMER */}
         {activeView === 'timer' && (
             <div className={`w-full h-full flex flex-col justify-center items-center relative transition-all duration-700 ${isZenMode ? 'scale-100 fixed inset-0 z-[200] bg-black' : ''}`}>
+                {/* Lo-Fi Audio Player (Hidden) */}
+                {playLoFi && (
+                    <iframe
+                        width="0" height="0"
+                        src="https://www.youtube.com/embed/jfKfPfyJRdk?autoplay=1&loop=1&playlist=jfKfPfyJRdk"
+                        title="lofi" frameBorder="0"
+                        allow="autoplay; encrypted-media"
+                        className="hidden absolute pointer-events-none"
+                    ></iframe>
+                )}
                 {/* Background Deep Space Zen */}
                 <div className="absolute inset-0 bg-black">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-600/20 rounded-full blur-[150px] animate-pulse-slow"></div>
@@ -951,12 +1239,23 @@ const App = () => {
 
                     {/* Zen Mode Toggle */}
                     {isTimerRunning && (
-                        <button 
-                            onClick={toggleFullscreen}
-                            className="absolute top-6 right-6 p-4 text-white/30 hover:text-white transition-colors z-50"
-                        >
-                            {isZenMode ? <Minimize size={24} /> : <Maximize size={24} />}
-                        </button>
+                        <div className="absolute top-6 right-6 flex items-center gap-2 z-50">
+                            {isZenMode && (
+                                <button
+                                    onClick={() => setPlayLoFi(!playLoFi)}
+                                    className={`p-3 rounded-full transition-all flex items-center gap-2 font-bold text-xs ${playLoFi ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' : 'bg-white/5 text-white/30 hover:text-white hover:bg-white/10'}`}
+                                    title="Toggle Lo-Fi Beats"
+                                >
+                                    <Headphones size={18} /> {playLoFi ? 'Lo-Fi On' : ''}
+                                </button>
+                            )}
+                            <button
+                                onClick={toggleFullscreen}
+                                className="p-4 text-white/30 hover:text-white transition-colors"
+                            >
+                                {isZenMode ? <Minimize size={24} /> : <Maximize size={24} />}
+                            </button>
+                        </div>
                     )}
 
                     <div className="flex items-center justify-center gap-8 relative z-10">
@@ -1043,11 +1342,21 @@ const App = () => {
                                             const tData = syllabusProgress[subject]?.[topic] || { done: false, rev: 0 };
                                             return (
                                                 <div key={topic} className="flex items-center justify-between p-3 rounded-xl hover:bg-white dark:hover:bg-white/5 transition-colors group">
-                                                    <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleSyllabusItem(subject, topic, 'done')}>
-                                                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${tData.done ? 'bg-amber-500 border-amber-500 text-white' : 'border-zinc-300 dark:border-zinc-600 text-transparent group-hover:border-amber-400'}`}>
-                                                            <Check size={12} strokeWidth={3} />
-                                                        </div>
-                                                        <span className={`text-sm font-medium transition-colors ${tData.done ? 'text-zinc-400 line-through decoration-zinc-400/50' : 'text-zinc-700 dark:text-zinc-200'}`}>{topic}</span>
+                                                    <div className="flex items-center gap-3 flex-1">
+                                                        <button
+                                                            onClick={() => toggleSyllabusItem(subject, topic, 'cycle_status')}
+                                                            className={`w-4 h-4 rounded-full border-2 transition-all shrink-0 ${
+                                                                tData.status === 'weak' ? 'bg-rose-500 border-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' :
+                                                                tData.status === 'average' ? 'bg-amber-500 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' :
+                                                                (tData.status === 'strong' || (tData.done && !tData.status)) ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
+                                                                'border-zinc-300 dark:border-zinc-600 bg-transparent hover:border-amber-400'
+                                                            }`}
+                                                            title="Cycle: Unseen → Weak → Average → Strong"
+                                                        />
+                                                        <span
+                                                            className={`text-sm font-medium transition-colors cursor-pointer select-none ${tData.done ? 'text-zinc-400' : 'text-zinc-700 dark:text-zinc-200'}`}
+                                                            onClick={() => toggleSyllabusItem(subject, topic, 'cycle_status')}
+                                                        >{topic}</span>
                                                     </div>
                                                     
                                                     <div className="flex items-center gap-3 pl-4 border-l border-zinc-200 dark:border-white/10 ml-4">

@@ -1,3 +1,98 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* === LIGHT MODE REFINEMENTS === */
+
+/* Warm gradient background instead of flat zinc-50 */
+:root:not(.dark) body {
+  background: linear-gradient(135deg, #fdf8f3 0%, #f5f0eb 30%, #eef1f8 70%, #f8f6f2 100%);
+  background-attachment: fixed;
+}
+
+/* Warmer card surfaces */
+:root:not(.dark) .bg-white {
+  background-color: #fffdf9;
+}
+
+/* Softer, warmer borders */
+:root:not(.dark) .border-zinc-200 {
+  border-color: #e8e0d8;
+}
+:root:not(.dark) .border-zinc-100 {
+  border-color: #f0e8e0;
+}
+
+/* Warmer nav bar */
+:root:not(.dark) nav {
+  background: rgba(255, 253, 249, 0.85) !important;
+  border-bottom-color: #e8e0d8 !important;
+}
+
+/* Warmer pill buttons in nav */
+:root:not(.dark) .bg-zinc-100 {
+  background-color: #f3ede6;
+}
+:root:not(.dark) .bg-zinc-50 {
+  background-color: #faf6f1;
+}
+:root:not(.dark) .bg-zinc-50\/50 {
+  background-color: rgba(250, 246, 241, 0.5);
+}
+
+/* Better text warmth */
+:root:not(.dark) .text-zinc-900 {
+  color: #2c2418;
+}
+:root:not(.dark) .text-zinc-700 {
+  color: #4a3f30;
+}
+:root:not(.dark) .text-zinc-500 {
+  color: #8a7e6e;
+}
+:root:not(.dark) .text-zinc-400 {
+  color: #a89a88;
+}
+
+/* Premium card shadows */
+:root:not(.dark) .shadow-sm {
+  box-shadow: 0 1px 3px rgba(180, 160, 130, 0.08), 0 4px 12px rgba(180, 160, 130, 0.05);
+}
+:root:not(.dark) .shadow-2xl {
+  box-shadow: 0 8px 40px rgba(180, 160, 130, 0.12), 0 2px 8px rgba(180, 160, 130, 0.06);
+}
+
+/* Calendar cells — warmer inactive state */
+:root:not(.dark) .aspect-\[3\/4\],
+:root:not(.dark) .aspect-\[4\/5\] {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+:root:not(.dark) .aspect-\[3\/4\]:hover,
+:root:not(.dark) .aspect-\[4\/5\]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(180, 160, 130, 0.12);
+}
+
+/* Heatmap cells — warmer empty state */
+:root:not(.dark) .bg-zinc-100.rounded-\[2px\] {
+  background-color: #f0e8e0;
+}
+
+/* Rounded card hover lift */
+:root:not(.dark) .rounded-3xl {
+  transition: box-shadow 0.2s ease;
+}
+:root:not(.dark) .rounded-3xl:hover {
+  box-shadow: 0 2px 8px rgba(180, 160, 130, 0.1), 0 8px 24px rgba(180, 160, 130, 0.06);
+}
+
+/* Hide scrollbars but keep scroll */
+*::-webkit-scrollbar { width: 0; height: 0; }
+* { scrollbar-width: none; }
+
+/* Smooth global transitions */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
+}

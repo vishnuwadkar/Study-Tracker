@@ -1,6 +1,6 @@
-# 🎓 GATE 2026 Study Tracker Pro
+# 🎓 GATE 2027 Study Tracker Pro
 
-A **premium, analytics-driven preparation platform** designed specifically for **GATE 2026 aspirants**.
+A **premium, analytics-driven preparation platform** designed specifically for **GATE 2027 aspirants**.
 Beyond basic time tracking, this application manages your full syllabus, revision cycles, study logs, and analytics — all wrapped in a clean, **Cursor AI–inspired dark UI**.
 
 ---
@@ -16,7 +16,7 @@ Beyond basic time tracking, this application manages your full syllabus, revisio
 ### 📊 **Analytics Dashboard**
 
 * **Countdown Timer**
-  Pulsating real-time countdown to **February 15, 2026**.
+  Pulsating real-time countdown to **February 7, 2027**.
 * **Weighted Progress**
   Tracks completion based on **subject mark weightage**, not just topic count.
 * **Weekly Velocity**
@@ -186,4 +186,4 @@ See `LICENSE` for details.
 **@vishnuwadkar**
 GitHub: [https://github.com/vishnuwadkar](https://github.com/vishnuwadkar)
 
-**Built with ❤️ for the GATE 2026 Community.**
+**Built with ❤️ for the GATE 2027 Community.**
