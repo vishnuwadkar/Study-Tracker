@@ -724,7 +724,7 @@ const App = () => {
                     </div>
                     <div className="hidden sm:block">
                         <h1 className="text-xl font-black tracking-tight text-zinc-900 dark:text-white leading-none">
-                            GATE <span className="text-amber-500 dark:text-amber-400">2026</span>
+                            GATE <span className="text-amber-500 dark:text-amber-400">2027</span>
                         </h1>
                         <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest">{userSettings.stream}</p>
                     </div>
